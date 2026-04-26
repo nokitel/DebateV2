@@ -1,12 +1,25 @@
-# Trigger: see docs/state-machine.md
-# Inputs: GitHub event payload for dashboard-tick
-# Outputs: comments, status changes, metrics lines
-# Failure modes: post harness:runner-error comment and metrics JSONL line
 name: dashboard-tick
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
 jobs:
-  placeholder:
-    runs-on: ubuntu-latest
+  dispatch:
+    runs-on: self-hosted
     steps:
-      - run: echo "TODO dashboard-tick"
+      - uses: actions/checkout@v4
+      - name: Dispatch harness hook
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+        run: |
+          echo "Regenerate pinned status issue from metrics and GitHub state."
+          bash scripts/runner/dispatch.sh dashboard-tick

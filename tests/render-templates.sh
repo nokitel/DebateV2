@@ -12,6 +12,7 @@ if grep -R '{{' "$out" \
   | grep -v '{{\.Names}}' \
   | grep -v '{{\.Status}}' \
   | grep -v '{{\.Ports}}' \
+  | grep -v '\${{' \
   | grep -v 'docker-compose.harness.yml.tpl' >/tmp/aiharness-unrendered.$$; then
   echo "Unrendered placeholders remain" >&2
   cat /tmp/aiharness-unrendered.$$ >&2
