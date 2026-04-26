@@ -1,0 +1,12 @@
+# Trigger: see docs/state-machine.md
+# Inputs: GitHub event payload for on-subissue-verifying-acceptance-result
+# Outputs: comments, status changes, metrics lines
+# Failure modes: post harness:runner-error comment and metrics JSONL line
+name: on-subissue-verifying-acceptance-result
+on:
+  workflow_dispatch:
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO on-subissue-verifying-acceptance-result"

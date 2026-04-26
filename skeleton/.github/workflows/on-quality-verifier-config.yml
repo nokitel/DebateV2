@@ -1,0 +1,12 @@
+# Trigger: see docs/state-machine.md
+# Inputs: GitHub event payload for on-quality-verifier-config
+# Outputs: comments, status changes, metrics lines
+# Failure modes: post harness:runner-error comment and metrics JSONL line
+name: on-quality-verifier-config
+on:
+  workflow_dispatch:
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "TODO on-quality-verifier-config"

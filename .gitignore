@@ -1,0 +1,3 @@
+.DS_Store
+memory/index.json
+.harness/metrics/*.jsonl

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cmd=${1:-help}; shift || true
+case "$cmd" in
+  next) echo "TODO: trigger next ready slice" ;;
+  status) echo "TODO: summarize harness metrics and GitHub state" ;;
+  stack) exec "$(dirname "$0")/stack/${1:-list}.sh" "${@:2}" ;;
+  memory) echo "TODO: memory query/reindex" ;;
+  reindex) exec "$(dirname "$0")/lib/memory-index.sh" ;;
+  lint) bash tests/lint-templates.sh && bash tests/render-templates.sh ;;
+  upgrade) echo "TODO: call bootstrap/upgrade.sh" ;;
+  verify-config) awk '/verification:/,/scheduling:/' .harness/config.yml ;;
+  help|--help|-h|*) echo "Usage: harness {next|status|stack|memory|reindex|lint|upgrade|verify-config}" ;;
+esac

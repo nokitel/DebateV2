@@ -1,0 +1,7 @@
+name: Feature
+description: Harness-managed feature request
+body:
+  - type: textarea
+    id: brief
+    attributes:
+      label: Brief
