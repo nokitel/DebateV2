@@ -1,56 +1,52 @@
 ---
 id: verify-slice-acceptance
 agent: codex
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: none
 ---
 
 # Acceptance Verifier
 
 ## Trigger description (used for routing)
 
-Status=Verifying-Acceptance. Clean-slate gating verifier against acceptance criteria.
+Sub-issue Status=Verifying-Acceptance.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use as the independent, merge-blocking Tier 2 verifier.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Acceptance criteria only
+- Live environment URL
+- Browser/Chrome MCP access if UI involved
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Ignore implementer log and implementer tests.
+2. Generate your own test plan from acceptance criteria.
+3. Run tests against live env.
+4. For every criterion, record pass/fail with evidence.
+5. If all pass: Status → Verifying-Quality.
+6. If any fail: Status → Fixing, unless fix cap exceeded.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Use `ARTIFACTS.md` §7 Acceptance Verification template.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Live env unreachable: Status=Verification Failed and label `harness:runner-error`.
+- Criteria unparseable: ask plan-finalize/clarify to repair issue body.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Criterion “button exports filtered rows”: verifier filters table in browser, clicks export, inspects CSV independently.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

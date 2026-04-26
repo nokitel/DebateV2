@@ -1,56 +1,53 @@
 ---
 id: phase-a-research-claude
 agent: claude
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: ["memory/decisions/*.md", "memory/glossary.md", "memory/guardrails.md"]
 ---
 
 # Claude Phase A Research
 
 ## Trigger description (used for routing)
 
-Status=Researching. Independent broad research of the brief, blind to Codex output.
+Status moves to Researching. Runs in parallel with Codex Phase A and is blind to Codex output.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use for broad product/architecture research from the raw brief before questions are asked.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Raw issue brief
+- Repository snapshot
+- `memory/decisions/*.md`, `memory/glossary.md`, `memory/guardrails.md` scoped by obvious tags
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Preserve the raw brief; do not pretend it is already a spec.
+2. Explore product intent, user value, likely edge cases, and architectural seams.
+3. Identify decisions that are actually questions.
+4. Call out assumptions and confidence.
+5. Write narrative findings, not a checklist.
+6. Do not read Codex Phase A output.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Use `ARTIFACTS.md` §5 Phase A research template.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Ambiguous brief: list concrete ambiguity and suggested clarifying question.
+- Memory contradiction: cite decision and recommend reconcile before planning.
+- Repo unavailable: produce product-only research and mark confidence low.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Brief: “add gamification.” Output identifies retroactive points, idempotency, streak timezone, no-notifications scope, and dashboard visibility as likely questions.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

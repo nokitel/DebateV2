@@ -1,56 +1,57 @@
 ---
 id: lessons
 agent: claude
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: ["memory/mistakes.md", "memory/guardrails.md", "memory/decisions/*.md", "memory/glossary.md"]
 ---
 
 # Lessons
 
 ## Trigger description (used for routing)
 
-Terminal states or /lessons-deep. Produces retrospective and optional human-approved proposals.
+PR merged/rejected, parent Done/Rejected, verification failure, or `/lessons-deep`.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use to extract earned memory without creating a junk drawer.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Issue/PR timeline
+- Final diff
+- Verification/fixer logs
+- Existing memory files
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+Quick pass:
+1. Summarize what happened and whether a lesson may exist.
+2. If no durable lesson, say so.
+
+Deep pass:
+1. Identify repeated failure, surprising success, or durable decision.
+2. Draft separate memory proposals with frontmatter.
+3. Include Tag rationale and why each passes the bar.
+4. Wait for human approval before memory mutation.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Quick retrospective or `Lesson proposal` blocks from `ARTIFACTS.md` §10.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- No evidence: no proposal.
+- Existing memory already covers it: cite and skip duplicate.
+- Ambiguous lesson: propose narrower version or ask.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+After two slices fail from timezone ambiguity, propose guardrail: “Any streak/date feature must define timezone in acceptance criteria.”
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

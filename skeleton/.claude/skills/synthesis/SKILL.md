@@ -1,56 +1,53 @@
 ---
 id: synthesis
 agent: claude
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: none
 ---
 
 # Synthesis
 
 ## Trigger description (used for routing)
 
-Both Phase A outputs exist. Reconcile, reframe if needed, and produce canonical synthesis.
+Both Phase A research outputs exist.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use to reconcile research into one canonical issue interpretation before clarification.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Raw brief
+- Claude Phase A output
+- Codex Phase A output
+- Relevant memory entries cited by either output
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Read both Phase A outputs cleanly.
+2. Extract agreements, contradictions, and independent discoveries.
+3. Reframe the problem if research shows the brief is pointing at the wrong layer.
+4. Draft `Synthesis`, `Memory Tags`, and initial `Open Questions` sections.
+5. Mark each question with recommendation and consequence.
+6. Do not create vertical slices yet.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Update issue body sections: Synthesis, Memory Tags, Open Questions, Provenance.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Research outputs conflict materially: preserve both views and ask a question.
+- Phase A missing: do not synthesize; request runner retry.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+If Claude sees product risk and Codex sees migration risk, synthesis turns both into explicit questions rather than burying one.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

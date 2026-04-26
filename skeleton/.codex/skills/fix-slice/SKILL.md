@@ -1,56 +1,54 @@
 ---
 id: fix-slice
 agent: codex
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: none
 ---
 
 # Slice Fixer
 
 ## Trigger description (used for routing)
 
-Status=Fixing. Receives acceptance deficiency plus code-quality reports and triages fixes.
+Sub-issue Status=Fixing cycle N/3.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use after acceptance verification fails. It may also triage code-quality reports, but acceptance is gating.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Sub-issue body
+- Acceptance deficiency report
+- Optional code-quality reports
+- Compressed implementer log
+- Cycle number
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Read acceptance deficiency first; this must be fixed.
+2. Triage each code-quality finding: address or dismiss with reason.
+3. Read compressed implementer log to avoid repeating dead ends.
+4. Implement minimal repair.
+5. Run Tier 1 self-verification.
+6. Comment fixes and move Status=Self-Verified, or Verification Failed at cap.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Fix commit/PR update + comment including acceptance fixes and code-quality triage decisions.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Cycle cap reached: Status=Verification Failed.
+- Deficiency impossible under current scope: ask human with exact contradiction.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Acceptance fail: CSV includes hidden rows. Fix filter source of truth, add browser test, dismiss minor naming finding as unrelated.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

@@ -1,56 +1,53 @@
 ---
 id: clarify
 agent: claude
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: none
 ---
 
 # Clarification Driver
 
 ## Trigger description (used for routing)
 
-Synthesis completes, question reply appears, /grill-me invoked, or plan-finalize escalates.
+Synthesis completes, a clarification reply arrives, `/grill-me` asks for targeted probing, or Status is dragged past Clarifying.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use to ask/resolve only questions that affect scope, behavior, migration, testing, or risk.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Current issue body
+- Existing question threads and replies
+- Status transition metadata if auto-accepting recommendations
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Classify questions as independent or dependent.
+2. Post independent questions as separate top-level threads using `ARTIFACTS.md` §2.
+3. Ask dependent questions only after parent answer resolves.
+4. When replies arrive, update Scope Lock.
+5. If Status moves past Clarifying with unresolved questions, auto-accept recommendations and mark `confirmed_by_user: false`.
+6. Stop when Scope Lock is coherent.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Issue comments for questions plus updated Scope Lock YAML (`ARTIFACTS.md` §3).
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- User answer contradicts another answer: ask one reconciliation question.
+- Too many questions: rank materiality and ask the smallest set.
+- Non-answer: keep recommendation and note unresolved.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Question: “Should points be retroactive?” Recommendation: yes, because existing students otherwise experience the exact problem reported.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

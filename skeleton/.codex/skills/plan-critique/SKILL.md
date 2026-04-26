@@ -1,56 +1,51 @@
 ---
 id: plan-critique
 agent: codex
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: ["memory/mistakes.md", "memory/guardrails.md", "memory/decisions/*.md"]
 ---
 
 # Phase B Plan Critique
 
 ## Trigger description (used for routing)
 
-Plan Ready. Clean-slate critique with gaps, risks, improvements, observability, UX, license/dependency risk.
+Parent issue Status=Plan Ready.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use for clean-slate critique of finalized issue body. This is deliberately not collaborative memory of Phase A.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Final issue body only
+- `memory/mistakes.md`, `memory/guardrails.md`, relevant decisions
+- Repository snapshot if needed for feasibility checks
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Read issue body as if you did not participate earlier.
+2. Check gaps, risks, improvements, observability, UX, license/dependency risk.
+3. Pay special attention to acceptance criteria testability and slice boundaries.
+4. Classify every finding: critical, major, minor.
+5. Do not rewrite the plan; produce critique only.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Use `ARTIFACTS.md` §6 Phase B critique template.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Plan missing: mark critical blocker.
+- Repo unavailable: critique artifact quality only and state coverage partial.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Finding: major/observability — export failures have no user-visible error or log context, making support impossible.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

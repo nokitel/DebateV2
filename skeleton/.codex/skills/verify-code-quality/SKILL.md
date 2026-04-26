@@ -1,56 +1,49 @@
 ---
 id: verify-code-quality-codex
 agent: codex
-invocation: runner-driven
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: ["memory/guardrails.md", "memory/decisions/*.md"]
 ---
 
 # Codex Code-quality Verifier
 
 ## Trigger description (used for routing)
 
-Status=Verifying-Quality when config selects Codex or dual. Informational structural/static review.
+Sub-issue Status=Verifying-Quality and config selects Codex or dual.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use for informational structural/static-flavored review after acceptance passed.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- PR diff
+- Sub-issue body
+- Relevant guardrails/decisions
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Review coupling, dead code, leaky abstractions, dependency hygiene, test depth, error handling, strict static-analysis concerns.
+2. Emit severity/category/file:line/suggestion per finding.
+3. Do not change Status. Findings are informational.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+`### Code-quality review (Codex)` using `ARTIFACTS.md` §7.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Large binary diff: mark coverage partial.
+- Tool failure: comment skipped; do not block.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+Major/coupling: route imports test fixture generator in production code; suggest moving conversion into domain utility.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.

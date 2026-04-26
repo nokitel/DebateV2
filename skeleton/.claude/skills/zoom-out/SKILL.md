@@ -1,56 +1,48 @@
 ---
 id: zoom-out
 agent: claude
-invocation: comment
 version: 0.2.0
-inputs:
-  - issue_body: Current issue body or scoped artifact.
-outputs:
-  - comment_or_artifact: Structured output defined below.
-memory_files_read:
-  - memory/decisions/*.md: relevant architectural decisions
+memory_files_read: none
 ---
 
 # Zoom Out
 
 ## Trigger description (used for routing)
 
-Comment command /zoom-out. Maps surrounding code, callers, callees, memory, and ADRs.
+Issue comment command `/zoom-out`.
 
 ## When to use
 
-Use when this exact workflow slot is reached by the runner or explicit command.
+Use when a human explicitly invokes `/zoom-out`.
 
 ## When NOT to use
 
-Do not use as a generic chat prompt. Do not mutate memory directly.
+Do not use for unrelated chat. Do not collapse this skill into another phase just because doing so feels faster. Status-as-state is the harness contract.
 
 ## Inputs
 
-- Issue body or slice body.
-- Relevant artifacts named by the runner.
-- Scoped memory files declared in frontmatter.
+- Current thread/comment
+- Relevant files/artifacts named by the user
 
 ## Workflow
 
-1. Read `AGENTS.md` and `ARTIFACTS.md`.
-2. Read declared inputs.
-3. Produce only the output this skill owns.
-4. Include evidence, assumptions, and failure notes when relevant.
+1. Read `ARTIFACTS.md`.
+2. Map surrounding system: callers, callees, data flow, tests, memory, ADRs, and likely blast radius. Output a concise architecture map and recommended next question.
+3. Produce an artifact/comment, not code changes unless explicitly requested.
 
 ## Output format
 
-Use the matching schema in `ARTIFACTS.md`.
+Command-specific structured markdown with evidence and recommendation.
 
 ## Failure modes
 
-- Missing input: post a blocker comment explaining the missing artifact.
-- Contradiction with memory: cite it and request clarification.
+- Missing target: ask for the target file/issue.
+- Too broad: narrow to one decision boundary.
 
 ## Examples
 
-Example: Given a brief for export-to-CSV, produce the relevant structured output without implementing adjacent features.
+User runs `/zoom-out @client-brief.md`; output follows the command-specific workflow.
 
 ## Provenance
 
-Derived from `AIHARNESS-BUILD-PLAN.md` v0.2.
+Derived from `AIHARNESS-BUILD-PLAN.md` v0.2. Keep this skill synchronized with `ARTIFACTS.md` and `docs/state-machine.md`.
