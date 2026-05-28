@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T01:35:14.381924+00:00`
+Generated at: `2026-05-28T01:41:56.652323+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof

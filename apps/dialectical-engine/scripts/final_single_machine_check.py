@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,24 @@ def probe_ok(auth_report: dict[str, Any], cli_name: str) -> bool:
 
 def add_check(checks: list[dict[str, Any]], name: str, ok: bool, detail: str) -> None:
     checks.append({"name": name, "ok": ok, "detail": detail})
+
+
+def freshness_checks(paths: dict[str, Path], *, max_age_minutes: int, now: float | None = None) -> list[dict[str, Any]]:
+    current = time.time() if now is None else now
+    max_age_seconds = max(max_age_minutes, 0) * 60
+    checks: list[dict[str, Any]] = []
+    for name, path in paths.items():
+        if not path.exists():
+            add_check(checks, f"{name}-fresh", False, f"missing report: {path}")
+            continue
+        age_seconds = max(0.0, current - path.stat().st_mtime)
+        add_check(
+            checks,
+            f"{name}-fresh",
+            age_seconds <= max_age_seconds,
+            f"{path} age {age_seconds:.0f}s, max {max_age_seconds}s",
+        )
+    return checks
 
 
 def evaluate(
@@ -172,19 +191,29 @@ def main() -> int:
     parser.add_argument("--auth-report", type=Path, default=DEFAULT_AUTH_REPORT)
     parser.add_argument("--hosting-report", type=Path, default=DEFAULT_HOSTING_REPORT)
     parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--max-report-age-minutes", type=int, default=30)
     parser.add_argument("--allow-missing-claude", action="store_true")
     parser.add_argument("--allow-missing-gemini", action="store_true")
     parser.add_argument("--allow-missing-named-hosting", action="store_true")
     args = parser.parse_args()
 
-    checks = evaluate(
-        load_json(args.local_check_report),
-        load_json(args.acceptance_report),
-        load_json(args.auth_report),
-        load_json(args.hosting_report),
-        require_claude=not args.allow_missing_claude,
-        require_gemini=not args.allow_missing_gemini,
-        require_named_hosting=not args.allow_missing_named_hosting,
+    report_paths = {
+        "local-check-report": args.local_check_report,
+        "acceptance-report": args.acceptance_report,
+        "auth-report": args.auth_report,
+        "hosting-report": args.hosting_report,
+    }
+    checks = freshness_checks(report_paths, max_age_minutes=args.max_report_age_minutes)
+    checks.extend(
+        evaluate(
+            load_json(args.local_check_report),
+            load_json(args.acceptance_report),
+            load_json(args.auth_report),
+            load_json(args.hosting_report),
+            require_claude=not args.allow_missing_claude,
+            require_gemini=not args.allow_missing_gemini,
+            require_named_hosting=not args.allow_missing_named_hosting,
+        )
     )
     failures = [check for check in checks if not check["ok"]]
     report = {

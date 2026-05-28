@@ -170,7 +170,9 @@ Expected for the simplified phase:
 
 `make final-single-machine-check` is the strict completion gate. It fails until
 the named `dezbatere.ro` endpoint, Cloudflare Tunnel service, local worker,
-Codex, LM Studio, Claude, and Gemini Google-account auth checks all pass.
+Codex, LM Studio, Claude, and Gemini Google-account auth checks all pass. The
+Make target refreshes the setup reports first; direct script runs reject stale
+report files.
 
 ## Current Blockers
 

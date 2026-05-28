@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import time
 from pathlib import Path
 
 
@@ -78,6 +80,26 @@ def hosting_report(*, delegated: bool = True, named_web: bool = True) -> dict[st
 
 def failed_names(checks: list[dict[str, object]]) -> set[str]:
     return {str(check["name"]) for check in checks if not check["ok"]}
+
+
+def test_freshness_checks_require_existing_recent_reports(tmp_path: Path) -> None:
+    module = load_module()
+    fresh = tmp_path / "fresh.json"
+    stale = tmp_path / "stale.json"
+    missing = tmp_path / "missing.json"
+    fresh.write_text("{}", encoding="utf-8")
+    stale.write_text("{}", encoding="utf-8")
+    now = time.time()
+    os.utime(fresh, (now - 60, now - 60))
+    os.utime(stale, (now - 3600, now - 3600))
+
+    checks = module.freshness_checks(
+        {"fresh": fresh, "stale": stale, "missing": missing},
+        max_age_minutes=30,
+        now=now,
+    )
+
+    assert failed_names(checks) == {"stale-fresh", "missing-fresh"}
 
 
 def test_final_check_passes_when_auth_hosting_and_local_runtime_are_ready() -> None:
