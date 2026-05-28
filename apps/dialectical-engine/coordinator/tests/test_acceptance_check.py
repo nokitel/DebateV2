@@ -67,7 +67,7 @@ def test_public_list_evidence_records_archive_rows() -> None:
                 "status": "complete",
                 "created_at": "2026-05-24T00:00:00+00:00",
                 "completed_at": "2026-05-24T00:01:00+00:00",
-                "models": ["codex-gpt-5", "claude-sonnet-4.5", "codex-gpt-5"],
+                "models": ["codex-gpt-5.5", "claude-sonnet-4-6", "codex-gpt-5.5"],
             }
         ],
     }
@@ -76,7 +76,7 @@ def test_public_list_evidence_records_archive_rows() -> None:
 
     assert module.public_list_detail(evidence) == "1 debates visible without auth"
     assert evidence["debate_count"] == 1
-    assert evidence["items"][0]["models"] == ["claude-sonnet-4.5", "codex-gpt-5"]
+    assert evidence["items"][0]["models"] == ["claude-sonnet-4-6", "codex-gpt-5.5"]
 
 
 def test_public_list_evidence_rejects_archived_rows() -> None:
@@ -131,7 +131,7 @@ def test_require_public_list_current_debate_accepts_current_complete_row() -> No
                 "id": "debate-1",
                 "topic": "Topic",
                 "status": "complete",
-                "models": ["codex-gpt-5", "gemini-2.5-pro"],
+                "models": ["codex-gpt-5.5", "gemini-2.5-flash"],
             }
         ]
     }
@@ -140,7 +140,7 @@ def test_require_public_list_current_debate_accepts_current_complete_row() -> No
         evidence,
         "debate-1",
         "Topic",
-        {"codex-gpt-5", "gemini-2.5-pro"},
+        {"codex-gpt-5.5", "gemini-2.5-flash"},
     )
 
 
@@ -150,7 +150,7 @@ def test_require_public_list_current_debate_accepts_current_complete_row() -> No
         (lambda row: row.update({"id": "other-debate"}), "missing current debate"),
         (lambda row: row.update({"topic": "Stale topic"}), "topic mismatch"),
         (lambda row: row.update({"status": "generating"}), "not complete"),
-        (lambda row: row.update({"models": ["codex-gpt-5"]}), "missing model badges"),
+        (lambda row: row.update({"models": ["codex-gpt-5.5"]}), "missing model badges"),
     ],
 )
 def test_require_public_list_current_debate_rejects_stale_rows(mutator, message: str) -> None:
@@ -159,7 +159,7 @@ def test_require_public_list_current_debate_rejects_stale_rows(mutator, message:
         "id": "debate-1",
         "topic": "Topic",
         "status": "complete",
-        "models": ["codex-gpt-5", "gemini-2.5-pro"],
+        "models": ["codex-gpt-5.5", "gemini-2.5-flash"],
     }
     mutator(row)
     evidence = {"items": [row]}
@@ -169,7 +169,7 @@ def test_require_public_list_current_debate_rejects_stale_rows(mutator, message:
             evidence,
             "debate-1",
             "Topic",
-            {"codex-gpt-5", "gemini-2.5-pro"},
+            {"codex-gpt-5.5", "gemini-2.5-flash"},
         )
 
 
@@ -292,7 +292,7 @@ def test_require_synthesis_evidence_returns_structured_fields() -> None:
         "strongest_pro": "Pro text",
         "strongest_con": "Con text",
         "verdict": "Verdict text",
-        "model_id": "codex-gpt-5",
+        "model_id": "codex-gpt-5.5",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "created_at": "2026-05-24T00:00:00+00:00",
@@ -308,7 +308,7 @@ def test_require_synthesis_evidence_rejects_missing_verdict() -> None:
         "debate_id": "debate-1",
         "strongest_pro": "Pro text",
         "strongest_con": "Con text",
-        "model_id": "codex-gpt-5",
+        "model_id": "codex-gpt-5.5",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "created_at": "2026-05-24T00:00:00+00:00",
@@ -326,7 +326,7 @@ def test_require_synthesis_evidence_rejects_bad_created_at() -> None:
         "strongest_pro": "Pro text",
         "strongest_con": "Con text",
         "verdict": "Verdict text",
-        "model_id": "codex-gpt-5",
+        "model_id": "codex-gpt-5.5",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "created_at": "not-a-date",
@@ -344,7 +344,7 @@ def test_require_synthesis_evidence_rejects_created_at_without_timezone() -> Non
         "strongest_pro": "Pro text",
         "strongest_con": "Con text",
         "verdict": "Verdict text",
-        "model_id": "codex-gpt-5",
+        "model_id": "codex-gpt-5.5",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "created_at": "2026-05-24T00:00:00",
@@ -361,7 +361,7 @@ def test_worker_status_payload_evidence_records_counts_and_rows() -> None:
             "id": WORKER_B_ID,
             "name": "adesso-mbp",
             "status": "offline",
-            "capabilities": ["claude-sonnet-4.5"],
+            "capabilities": ["claude-sonnet-4-6"],
             "current_job_id": None,
             "last_seen": "2026-05-24T00:00:00+00:00",
         },
@@ -369,7 +369,7 @@ def test_worker_status_payload_evidence_records_counts_and_rows() -> None:
             "id": WORKER_A_ID,
             "name": "mac-mini",
             "status": "online",
-            "capabilities": ["codex-gpt-5", "claude-sonnet-4.5"],
+            "capabilities": ["codex-gpt-5.5", "claude-sonnet-4-6"],
             "current_job_id": JOB_ID,
             "last_seen": "2026-05-24T02:00:01+02:00",
         },
@@ -386,7 +386,7 @@ def test_worker_status_payload_evidence_records_counts_and_rows() -> None:
         "degraded_count": 0,
         "busy_count": 1,
         "capability_count": 2,
-        "capabilities": ["claude-sonnet-4.5", "codex-gpt-5"],
+        "capabilities": ["claude-sonnet-4-6", "codex-gpt-5.5"],
         "online_worker_names": ["mac-mini"],
         "offline_worker_names": ["adesso-mbp"],
         "degraded_worker_names": [],
@@ -395,7 +395,7 @@ def test_worker_status_payload_evidence_records_counts_and_rows() -> None:
                 "id": WORKER_B_ID,
                 "name": "adesso-mbp",
                 "status": "offline",
-                "capabilities": ["claude-sonnet-4.5"],
+                "capabilities": ["claude-sonnet-4-6"],
                 "current_job_id": None,
                 "last_seen": "2026-05-24T00:00:00+00:00",
             },
@@ -403,7 +403,7 @@ def test_worker_status_payload_evidence_records_counts_and_rows() -> None:
                 "id": WORKER_A_ID,
                 "name": "mac-mini",
                 "status": "online",
-                "capabilities": ["claude-sonnet-4.5", "codex-gpt-5"],
+                "capabilities": ["claude-sonnet-4-6", "codex-gpt-5.5"],
                 "current_job_id": JOB_ID,
                 "last_seen": "2026-05-24T00:00:01+00:00",
             },
@@ -432,7 +432,7 @@ def test_worker_status_payload_evidence_rejects_last_seen_without_timezone() -> 
         "id": WORKER_A_ID,
         "name": "mac-mini",
         "status": "online",
-        "capabilities": ["codex-gpt-5"],
+        "capabilities": ["codex-gpt-5.5"],
         "current_job_id": None,
         "last_seen": "2026-05-24T00:00:01",
     }
@@ -458,7 +458,7 @@ def test_worker_status_payload_evidence_rejects_malformed_worker_identity(
         "id": WORKER_A_ID,
         "name": "mac-mini",
         "status": "online",
-        "capabilities": ["codex-gpt-5"],
+        "capabilities": ["codex-gpt-5.5"],
         "current_job_id": JOB_ID,
         "last_seen": "2026-05-24T00:00:01+00:00",
     }
@@ -471,9 +471,9 @@ def test_worker_status_payload_evidence_rejects_malformed_worker_identity(
 @pytest.mark.parametrize(
     ("capabilities", "message"),
     [
-        (["codex-gpt-5", ""], "Worker mac-mini capability 2 is blank"),
-        (["codex-gpt-5", "codex-gpt-5"], "Worker mac-mini duplicate capability: codex-gpt-5"),
-        (["codex-gpt-5", 7], "Worker mac-mini capability 2 is not a string"),
+        (["codex-gpt-5.5", ""], "Worker mac-mini capability 2 is blank"),
+        (["codex-gpt-5.5", "codex-gpt-5.5"], "Worker mac-mini duplicate capability: codex-gpt-5.5"),
+        (["codex-gpt-5.5", 7], "Worker mac-mini capability 2 is not a string"),
     ],
 )
 def test_worker_status_payload_evidence_rejects_malformed_capabilities(capabilities, message: str) -> None:
@@ -499,7 +499,7 @@ def test_worker_status_evidence_normalizes_timezone_aware_last_seen_to_utc() -> 
                 "id": WORKER_A_ID,
                 "name": "mac-mini",
                 "status": "online",
-                "capabilities": ["codex-gpt-5"],
+                "capabilities": ["codex-gpt-5.5"],
                 "current_job_id": None,
                 "last_seen": "2026-05-24T02:00:01+02:00",
             }
@@ -519,7 +519,7 @@ def test_worker_status_evidence_rejects_bad_worker_rows() -> None:
                     "id": "worker-1",
                     "name": "mac-mini",
                     "status": "online",
-                    "capabilities": ["codex-gpt-5"],
+                    "capabilities": ["codex-gpt-5.5"],
                     "current_job_id": None,
                     "last_seen": "2026-05-24T02:00:01+02:00",
                 }
@@ -951,7 +951,7 @@ def test_generation_history_evidence_promotes_active_and_archived_rows() -> None
     module = load_acceptance_module()
     archived = {
         "id": "generation-old",
-        "model_id": "codex-gpt-5",
+        "model_id": "codex-gpt-5.5",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "role": "proposer",
@@ -964,7 +964,7 @@ def test_generation_history_evidence_promotes_active_and_archived_rows() -> None
     }
     active = {
         "id": "generation-new",
-        "model_id": "claude-sonnet-4.5",
+        "model_id": "claude-sonnet-4-6",
         "worker_id": "worker-1",
         "worker_name": "mac-mini",
         "role": "proposer",
@@ -1042,7 +1042,7 @@ def test_markdown_export_evidence_promotes_headers_sections_and_metadata() -> No
             "## Synthesis\n\n"
             "## Tree\n\n"
             "**Workers:** mac-mini\n"
-            "**Models:** codex-gpt-5\n"
+            "**Models:** codex-gpt-5.5\n"
             "## Generation History\n"
         ),
     )
@@ -1056,7 +1056,7 @@ def test_markdown_export_evidence_promotes_headers_sections_and_metadata() -> No
         "Topic",
         "debate-1",
         {"mac-mini"},
-        {"codex-gpt-5"},
+        {"codex-gpt-5.5"},
         history_items,
     )
 
@@ -1070,7 +1070,7 @@ def test_markdown_export_evidence_promotes_headers_sections_and_metadata() -> No
     assert evidence["tree_section"] is True
     assert evidence["generation_history_section"] is True
     assert evidence["worker_names"] == ["mac-mini"]
-    assert evidence["model_ids"] == ["codex-gpt-5"]
+    assert evidence["model_ids"] == ["codex-gpt-5.5"]
     assert evidence["history_generation_ids"] == ["generation-new", "generation-old"]
     assert evidence["active_generation_ids"] == ["generation-new"]
     assert evidence["archived_generation_ids"] == ["generation-old"]
@@ -1112,7 +1112,7 @@ def test_write_report_promotes_structured_worker_model_evidence(tmp_path: Path) 
                     "id": "worker-mac-mini",
                     "name": "mac-mini",
                     "status": "online",
-                    "capabilities": ["codex-gpt-5"],
+                    "capabilities": ["codex-gpt-5.5"],
                     "current_job_id": None,
                     "last_seen": "2026-05-24T00:00:00+00:00",
                 }
@@ -1134,12 +1134,12 @@ def test_write_report_promotes_structured_worker_model_evidence(tmp_path: Path) 
         ),
         module.CheckResult("generated-workers", "mac-mini", ["mac-mini"]),
         module.CheckResult("regenerated-workers", "mac-mini", ["mac-mini"]),
-        module.CheckResult("generated-models", "codex-gpt-5", ["codex-gpt-5"]),
-        module.CheckResult("regenerated-models", "claude-sonnet-4.5", ["claude-sonnet-4.5"]),
+        module.CheckResult("generated-models", "codex-gpt-5.5", ["codex-gpt-5.5"]),
+        module.CheckResult("regenerated-models", "claude-sonnet-4-6", ["claude-sonnet-4-6"]),
         module.CheckResult(
             "regeneration-model-switch",
-            "codex-gpt-5 -> claude-sonnet-4.5",
-            {"old_model": "codex-gpt-5", "new_model": "claude-sonnet-4.5"},
+            "codex-gpt-5.5 -> claude-sonnet-4-6",
+            {"old_model": "codex-gpt-5.5", "new_model": "claude-sonnet-4-6"},
         ),
     ]
 
@@ -1153,13 +1153,13 @@ def test_write_report_promotes_structured_worker_model_evidence(tmp_path: Path) 
     assert payload["offline_workers"][0]["id"] == "worker-adesso-mbp"
     assert payload["offline_workers"][0]["name"] == "adesso-mbp"
     assert payload["observed_worker_names"] == ["adesso-mbp", "mac-mini"]
-    assert payload["observed_model_ids"] == ["claude-sonnet-4.5", "codex-gpt-5"]
+    assert payload["observed_model_ids"] == ["claude-sonnet-4-6", "codex-gpt-5.5"]
     assert payload["regeneration_model_switch"] == {
-        "new_model": "claude-sonnet-4.5",
-        "old_model": "codex-gpt-5",
+        "new_model": "claude-sonnet-4-6",
+        "old_model": "codex-gpt-5.5",
     }
     switch_result = next(result for result in payload["results"] if result["name"] == "regeneration-model-switch")
-    assert switch_result["evidence"]["new_model"] == "claude-sonnet-4.5"
+    assert switch_result["evidence"]["new_model"] == "claude-sonnet-4-6"
 
 
 def test_require_settings_round_trip_verifies_generic_model_caps() -> None:
@@ -1509,7 +1509,7 @@ def test_web_home_evidence_records_markers() -> None:
         status_code = 200
         text = (
             '<main><h1>Debates</h1><p>Public archive</p><a href="/new">New</a>'
-            '<a href="/debate/1">A topic</a><span>complete</span><span>codex-gpt-5</span></main>'
+            '<a href="/debate/1">A topic</a><span>complete</span><span>codex-gpt-5.5</span></main>'
         )
         headers = {"content-type": "text/html; charset=utf-8"}
 
@@ -1525,7 +1525,7 @@ def test_web_home_evidence_records_markers() -> None:
         "1",
         "A topic",
         "complete",
-        ["codex-gpt-5"],
+        ["codex-gpt-5.5"],
     )
 
     assert module.web_home_detail(evidence) == "https://debate.example.com/ returned HTML with /debate/1 for A topic"
@@ -1541,8 +1541,8 @@ def test_web_home_evidence_records_markers() -> None:
     assert evidence["current_topic_present"] is True
     assert evidence["current_status"] == "complete"
     assert evidence["current_status_present"] is True
-    assert evidence["current_model_ids"] == ["codex-gpt-5"]
-    assert evidence["current_model_markers_present"] == {"codex-gpt-5": True}
+    assert evidence["current_model_ids"] == ["codex-gpt-5.5"]
+    assert evidence["current_model_markers_present"] == {"codex-gpt-5.5": True}
 
 
 def test_web_auth_gates_evidence_records_each_protected_route() -> None:

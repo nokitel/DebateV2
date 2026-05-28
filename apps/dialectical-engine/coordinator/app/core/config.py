@@ -26,14 +26,14 @@ MAX_GROK_MONTHLY_CAP_USD = 1_000_000.0
 DEFAULT_ROUTING: dict[str, dict[str, Any]] = {
     "decomposer": {
         "primary": "mock-local",
-        "fallback": ["claude-sonnet-4.5", "codex-gpt-5"],
+        "fallback": ["claude-sonnet-4-6", "codex-gpt-5.5"],
     },
     "proposer": {
         "pool": [
             "mock-local",
-            "claude-sonnet-4.5",
-            "codex-gpt-5",
-            "gemini-2.5-pro",
+            "claude-sonnet-4-6",
+            "codex-gpt-5.5",
+            "gemini-2.5-flash",
             "grok-4",
             "ollama:qwen-3.6",
             "ollama:gemma-4-9b",
@@ -43,9 +43,9 @@ DEFAULT_ROUTING: dict[str, dict[str, Any]] = {
     "opponent": {
         "pool": [
             "mock-local",
-            "claude-sonnet-4.5",
-            "codex-gpt-5",
-            "gemini-2.5-pro",
+            "claude-sonnet-4-6",
+            "codex-gpt-5.5",
+            "gemini-2.5-flash",
             "grok-4",
             "ollama:qwen-3.6",
             "ollama:gemma-4-9b",
@@ -55,7 +55,7 @@ DEFAULT_ROUTING: dict[str, dict[str, Any]] = {
     },
     "synthesizer": {
         "primary": "mock-local",
-        "fallback": ["claude-opus-4.7", "codex-gpt-5"],
+        "fallback": ["claude-sonnet-4-6", "codex-gpt-5.5"],
     },
 }
 

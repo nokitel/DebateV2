@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T01:41:56.652323+00:00`
+Generated at: `2026-05-28T19:38:39.098359+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
@@ -14,16 +14,16 @@ Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 - [x] Coordinator is reachable at `http://127.0.0.1:8000`.
 - [x] Web app is reachable at `http://127.0.0.1:3000` with static assets.
 - [x] At least one local worker is online.
-- [x] `codex-gpt-5` is enabled on the local worker.
+- [x] `codex-gpt-5.5` is enabled on the local worker.
 - [x] `lmstudio:google_gemma-4-e4b-it` is enabled and loaded.
 - [x] `make local-single-machine-acceptance` passes.
 - [x] Temporary Cloudflare quick tunnel currently works.
 
 ## Remaining Account/Auth Work
 
-- [ ] Claude personal auth works. Current detail: current probe returns 401.
+- [x] Claude personal auth works. Current detail: ok.
 - [x] Gemini CLI is configured for Google-account OAuth and the worker has no `GEMINI_API_KEY`.
-- [ ] Gemini Google-account auth works. Current detail: waiting for Google OAuth.
+- [x] Gemini Google-account auth works. Current detail: ok.
 
 Commands after completing Claude/Gemini login:
 If you use `make interactive-manual-setup`, accept its local model routing refresh. If you log in manually, run:

@@ -11,9 +11,9 @@ DEFAULT_CHECK_REPORT = Path("/private/tmp/dialectical-local-single-machine-check
 DEFAULT_ACCEPTANCE_REPORT = Path("/private/tmp/dialectical-local-single-machine-acceptance.json")
 DEFAULT_AUTH_REPORT = Path("/private/tmp/dialectical-model-auth-check.json")
 DEFAULT_GEMINI_SETTINGS = Path("~/.gemini/settings.json").expanduser()
-CLAUDE_MODEL = "claude-sonnet-4.5"
-CODEX_MODEL = "codex-gpt-5"
-GEMINI_MODEL = "gemini-2.5-pro"
+CLAUDE_MODEL = "claude-sonnet-4-6"
+CODEX_MODEL = "codex-gpt-5.5"
+GEMINI_MODEL = "gemini-2.5-flash"
 LMSTUDIO_MODEL = "lmstudio:google_gemma-4-e4b-it"
 
 

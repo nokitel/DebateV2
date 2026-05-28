@@ -10,7 +10,7 @@ GOOGLE_ACCOUNT_AUTH_ENV = {"GOOGLE_GENAI_USE_GCA": "true"}
 
 
 class GeminiCliAdapter(SubprocessStreamingAdapter):
-    model_id = "gemini-2.5-pro"
+    model_id = "gemini-2.5-flash"
     role_pool = {"decomposer", "proposer", "opponent", "synthesizer"}
     executable = "gemini"
 
@@ -24,6 +24,8 @@ class GeminiCliAdapter(SubprocessStreamingAdapter):
         try:
             process = await asyncio.create_subprocess_exec(
                 "gemini",
+                "-m",
+                self.model_id,
                 "-p",
                 "Respond with exactly OK.",
                 "--output-format",
@@ -42,4 +44,4 @@ class GeminiCliAdapter(SubprocessStreamingAdapter):
 
     def command(self, system: str, user: str, max_tokens: int) -> list[str]:
         prompt = f"{system}\n\n{user}\n\nMaximum tokens: {max_tokens}"
-        return ["gemini", "-p", prompt]
+        return ["gemini", "-m", self.model_id, "-p", prompt]

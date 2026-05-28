@@ -31,6 +31,9 @@ DEFAULT_DOMAIN = "dezbatere.ro"
 DEFAULT_DB = Path("~/.dialectical/db.sqlite3").expanduser()
 DEFAULT_GEMINI_SETTINGS = Path("~/.gemini/settings.json").expanduser()
 GOOGLE_OAUTH_AUTH_TYPE = "oauth-personal"
+CODEX_CLI_MODEL = "gpt-5.5"
+CLAUDE_MODEL = "claude-sonnet-4-6"
+GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_LM_STUDIO_CAPABILITY = "lmstudio:google_gemma-4-e4b-it"
 DEFAULT_CLOUDFLARED_DIR = Path("~/.cloudflared").expanduser()
 DEFAULT_QUICK_TUNNEL_LOGS = [
@@ -199,13 +202,25 @@ def cli_status(probe_models: bool) -> dict[str, object]:
         status[name] = entry
 
     if probe_models:
-        status["claude"]["probe"] = run(["claude", "-p", "--max-turns", "1", "Reply with exactly: ok"], timeout=20)
+        status["claude"]["probe"] = run(
+            ["claude", "-p", "--model", CLAUDE_MODEL, "--max-turns", "1", "Reply with exactly: ok"],
+            timeout=20,
+        )
         status["codex"]["probe"] = run(
-            ["codex", "exec", "--skip-git-repo-check", "--sandbox", "read-only", "Reply with exactly: ok"],
+            [
+                "codex",
+                "exec",
+                "--skip-git-repo-check",
+                "--sandbox",
+                "read-only",
+                "--model",
+                CODEX_CLI_MODEL,
+                "Reply with exactly: ok",
+            ],
             timeout=60,
         )
         status["gemini"]["probe"] = run(
-            ["gemini", "-p", "Reply with exactly: ok"],
+            ["gemini", "-m", GEMINI_MODEL, "-p", "Reply with exactly: ok"],
             timeout=30,
             env={"GOOGLE_GENAI_USE_GCA": "true"},
         )

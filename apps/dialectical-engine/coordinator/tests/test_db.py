@@ -60,7 +60,7 @@ def test_only_one_active_generation_per_node_is_enforced(db) -> None:
     db.add(
         Generation(
             node_id=node.id,
-            model_id="codex-gpt-5",
+            model_id="codex-gpt-5.5",
             role="proposer",
             argument="Archived prior view.",
             prompt_version="v1",
@@ -74,7 +74,7 @@ def test_only_one_active_generation_per_node_is_enforced(db) -> None:
     db.add(
         Generation(
             node_id=node.id,
-            model_id="gemini-2.5-pro",
+            model_id="gemini-2.5-flash",
             role="proposer",
             argument="Second active view.",
             prompt_version="v1",

@@ -4,12 +4,13 @@ Goal: use personal subscriptions locally without adding paid API keys unless you
 
 ## Current Status
 
-- Codex CLI works non-interactively.
-- Claude Code is installed, but `claude auth status` reports `loggedIn: false`
-  and the current non-interactive probe returns `401 Invalid authentication credentials`.
+- Codex CLI works non-interactively with underlying Codex model `gpt-5.5`; the
+  worker advertises this as `codex-gpt-5.5`.
+- Claude Code works non-interactively with `claude-sonnet-4-6` after Claude
+  subscription login.
 - Gemini CLI is installed and configured to prefer Google-account OAuth
-  (`oauth-personal`), but the browser OAuth flow still needs to be completed
-  once from a normal Terminal.
+  (`oauth-personal`). The working Flash model through the current local CLI is
+  `gemini-2.5-flash`; `gemini-3.5-flash` returned `ModelNotFoundError`.
 - The worker launchd template sets `GOOGLE_GENAI_USE_GCA=true`, so after
   Gemini OAuth succeeds, the service keeps using Google-account auth instead of
   requiring `GEMINI_API_KEY`.
@@ -39,17 +40,17 @@ claude auth login --claudeai
 `claude auth login --console` unless you intentionally want Anthropic Console
 API billing.
 
-Then verify:
+Then verify Sonnet 4.6:
 
 ```sh
-claude -p --max-turns 1 'Reply with exactly: ok'
+claude -p --model claude-sonnet-4-6 --max-turns 1 'Reply with exactly: ok'
 ```
 
 Expected output includes `ok`. If it still returns `401 Invalid authentication credentials`, run:
 
 ```sh
 claude setup-token
-claude -p --max-turns 1 'Reply with exactly: ok'
+claude -p --model claude-sonnet-4-6 --max-turns 1 'Reply with exactly: ok'
 ```
 
 ## Gemini CLI
@@ -72,15 +73,15 @@ a local callback port.
 Then verify:
 
 ```sh
-gemini -p 'Reply with exactly: ok'
+gemini -m gemini-2.5-flash -p 'Reply with exactly: ok'
 ```
 
 Expected output includes `ok`. The local CLI also accepts
 `GOOGLE_GENAI_USE_GCA=true` for Google-account auth, but the project helper uses
 the settings file so launchd/non-interactive probes see the same auth method.
 
-Current local status: the auth method has been set to `oauth-personal`, but the
-browser OAuth flow still needs to be completed.
+Current local status: the auth method is `oauth-personal`, the browser OAuth
+flow is complete, and the non-interactive Gemini probe succeeds.
 
 ## Recheck
 

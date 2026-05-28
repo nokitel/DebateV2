@@ -34,7 +34,7 @@ def test_worker_config_checks_report_pinned_allowed_models(tmp_path: Path) -> No
         "\n".join(
             [
                 'worker_token = "worker_secret"',
-                'allowed_models = [" codex-gpt-5 ", "gemini-2.5-pro", "codex-gpt-5", ""]',
+                'allowed_models = [" codex-gpt-5.5 ", "gemini-2.5-flash", "codex-gpt-5.5", ""]',
                 "enable_mock = false",
                 "enable_real_adapters = true",
                 "",
@@ -49,7 +49,7 @@ def test_worker_config_checks_report_pinned_allowed_models(tmp_path: Path) -> No
     assert checks["user-token-not-persisted"].status == "PASS"
     assert checks["worker-config-parse"].status == "PASS"
     assert checks["worker-allowed-models"].status == "PASS"
-    assert checks["worker-allowed-models"].detail == "codex-gpt-5, gemini-2.5-pro"
+    assert checks["worker-allowed-models"].detail == "codex-gpt-5.5, gemini-2.5-flash"
     assert checks["worker-mock-adapter"].status == "PASS"
     assert checks["worker-real-adapters"].status == "PASS"
 
@@ -174,24 +174,24 @@ def test_required_worker_api_key_checks_pass_when_launchd_has_required_key(monke
 
     checks = checks_by_name(
         module.required_worker_api_key_checks(
-            "codex-gpt-5,gemini-2.5-pro",
+            "codex-gpt-5.5,gemini-2.5-flash",
             {"GEMINI_API_KEY": "gemini-secret"},
         )
     )
 
-    assert checks["worker-api-key:gemini-2.5-pro"].status == "PASS"
-    assert checks["worker-api-key:gemini-2.5-pro"].detail == "GEMINI_API_KEY is set in worker launchd environment"
+    assert checks["worker-api-key:gemini-2.5-flash"].status == "PASS"
+    assert checks["worker-api-key:gemini-2.5-flash"].detail == "GEMINI_API_KEY is set in worker launchd environment"
 
 
 def test_required_worker_api_key_checks_fail_when_key_is_only_in_shell(monkeypatch) -> None:
     module = load_deployment_preflight_module()
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret")
 
-    checks = checks_by_name(module.required_worker_api_key_checks("gemini-2.5-pro", {}))
+    checks = checks_by_name(module.required_worker_api_key_checks("gemini-2.5-flash", {}))
 
-    assert checks["worker-api-key:gemini-2.5-pro"].status == "FAIL"
+    assert checks["worker-api-key:gemini-2.5-flash"].status == "FAIL"
     assert "set in the shell but not in the installed worker launchd environment" in checks[
-        "worker-api-key:gemini-2.5-pro"
+        "worker-api-key:gemini-2.5-flash"
     ].detail
 
 
@@ -199,11 +199,11 @@ def test_required_worker_api_key_checks_fail_when_required_key_is_missing(monkey
     module = load_deployment_preflight_module()
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
-    checks = checks_by_name(module.required_worker_api_key_checks("gemini-2.5-pro,grok-4", {}))
+    checks = checks_by_name(module.required_worker_api_key_checks("gemini-2.5-flash,grok-4", {}))
 
-    assert checks["worker-api-key:gemini-2.5-pro"].status == "FAIL"
+    assert checks["worker-api-key:gemini-2.5-flash"].status == "FAIL"
     assert "GEMINI_API_KEY is not set in the installed worker launchd environment" in checks[
-        "worker-api-key:gemini-2.5-pro"
+        "worker-api-key:gemini-2.5-flash"
     ].detail
     assert checks["worker-api-key:grok-4"].status == "FAIL"
     assert "XAI_API_KEY is not set in the installed worker launchd environment" in checks[
@@ -654,7 +654,7 @@ def test_real_adapter_checks_count_gemini_api_key(monkeypatch) -> None:
     assert checks["adapter-credential:gemini-api"].status == "PASS"
     assert checks["adapter-auth:gemini-api"].status == "WARN"
     assert checks["real-adapter-invocation"].status == "PASS"
-    assert checks["real-adapter-invocation"].detail.startswith("gemini-2.5-pro;")
+    assert checks["real-adapter-invocation"].detail.startswith("gemini-2.5-flash;")
 
 
 def test_real_adapter_checks_count_launchd_api_keys_when_shell_env_is_absent(monkeypatch) -> None:
@@ -676,7 +676,7 @@ def test_real_adapter_checks_count_launchd_api_keys_when_shell_env_is_absent(mon
     assert checks["adapter-credential:xai-api"].status == "PASS"
     assert checks["adapter-credential:xai-api"].detail == "XAI_API_KEY is set in worker launchd environment"
     assert checks["real-adapter-invocation"].status == "PASS"
-    assert checks["real-adapter-invocation"].detail.startswith("gemini-2.5-pro, grok-4;")
+    assert checks["real-adapter-invocation"].detail.startswith("gemini-2.5-flash, grok-4;")
 
 
 def test_real_adapter_checks_ignore_placeholder_api_keys(monkeypatch) -> None:

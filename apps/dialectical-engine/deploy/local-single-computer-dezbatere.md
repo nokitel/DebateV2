@@ -16,11 +16,11 @@ acceptance are deferred.
 
 - Coordinator listens on `http://127.0.0.1:8000`.
 - Web proxy listens on `http://127.0.0.1:3000`.
-- Worker `mac-mini` is online and currently advertises `codex-gpt-5` and
+- Worker `mac-mini` is online and currently advertises `codex-gpt-5.5` and
   native LM Studio capability `lmstudio:google_gemma-4-e4b-it`.
 - Standalone worker `mac-mini-lmstudio` is stopped; it remains available as a
   fallback if the native LM Studio adapter is disabled later.
-- Local routing is configured for `codex-gpt-5` plus
+- Local routing is configured for `codex-gpt-5.5` plus
   `lmstudio:google_gemma-4-e4b-it`.
 - The account-less quick tunnel currently exposes the app through
   `https://evaluations-postage-proceed-happiness.trycloudflare.com`.
@@ -38,10 +38,12 @@ acceptance are deferred.
 
 Use these in order for the single-machine phase:
 
-1. `codex-gpt-5` through the Codex CLI. This is currently proved
-   non-interactive on this Mac.
-2. Claude through Claude Code after running an interactive `claude auth login`.
-3. Gemini CLI only if Google-account auth is configured. Prefer Google-account
+1. `codex-gpt-5.5` through the Codex CLI, which invokes Codex model
+   `gpt-5.5`. This is currently proved non-interactive on this Mac.
+2. `claude-sonnet-4-6` through Claude Code after running an interactive
+   `claude auth login --claudeai`.
+3. `gemini-2.5-flash` through Gemini CLI if Google-account auth is configured.
+   Prefer Google-account
    auth if it is covered by the user's current Google subscription; avoid
    `GEMINI_API_KEY` unless paid API usage is acceptable. The installed worker
    service sets `GOOGLE_GENAI_USE_GCA=true` so the Gemini CLI path stays on
@@ -177,8 +179,8 @@ curl http://127.0.0.1:1234/v1/chat/completions \
 Log in Claude Code interactively:
 
 ```sh
-claude auth login
-claude -p --max-turns 1 'Reply with exactly: ok'
+claude auth login --claudeai
+claude -p --model claude-sonnet-4-6 --max-turns 1 'Reply with exactly: ok'
 ```
 
 Configure Gemini CLI only if using Google-account auth:
@@ -186,7 +188,7 @@ Configure Gemini CLI only if using Google-account auth:
 ```sh
 make configure-gemini-google-auth
 gemini
-gemini -p 'Reply with exactly: ok'
+gemini -m gemini-2.5-flash -p 'Reply with exactly: ok'
 ```
 
 Choose `Login with Google` in the interactive CLI if prompted. The CLI may

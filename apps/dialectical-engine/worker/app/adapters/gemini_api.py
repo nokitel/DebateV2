@@ -9,7 +9,7 @@ from app.adapters.credentials import configured_api_key
 
 
 class GeminiApiAdapter:
-    model_id = "gemini-2.5-pro"
+    model_id = "gemini-2.5-flash"
     role_pool = {"decomposer", "proposer", "opponent", "synthesizer"}
 
     async def health_check(self) -> bool:

@@ -102,15 +102,19 @@ def test_cli_adapter_commands() -> None:
         "claude",
         "-p",
         "sys\n\nuser",
+        "--model",
+        "claude-sonnet-4-6",
         "--output-format",
         "stream-json",
         "--verbose",
     ]
     codex_command = CodexCliAdapter().command("sys", "user", 10)
     assert codex_command[:5] == ["codex", "exec", "--skip-git-repo-check", "--sandbox", "workspace-write"]
+    assert "--model" in codex_command
+    assert "gpt-5.5" in codex_command
     assert "--full-auto" not in codex_command
     assert "-q" not in codex_command
-    assert GeminiCliAdapter().command("sys", "user", 10)[0] == "gemini"
+    assert GeminiCliAdapter().command("sys", "user", 10)[:3] == ["gemini", "-m", "gemini-2.5-flash"]
     assert GrokCliAdapter().command("sys", "user", 10)[0] == "grok"
 
 
@@ -176,7 +180,7 @@ def grok_help_process(help_text: str, returncode: int = 0):
 
 def gemini_probe_process(stdout_text: str = "OK\n", returncode: int = 0):
     async def fake_exec(*command: str, stdout, stderr, env) -> FakeCliProcess:
-        assert command == ("gemini", "-p", "Respond with exactly OK.", "--output-format", "text")
+        assert command == ("gemini", "-m", "gemini-2.5-flash", "-p", "Respond with exactly OK.", "--output-format", "text")
         assert stdout == asyncio.subprocess.PIPE
         assert stderr == asyncio.subprocess.PIPE
         assert env["GOOGLE_GENAI_USE_GCA"] == "true"
@@ -372,7 +376,7 @@ class FakeGeminiClient:
 
     def stream(self, method: str, url: str, headers: dict[str, str], json: dict[str, object]) -> FakeStream:
         assert method == "POST"
-        assert url.endswith("/models/gemini-2.5-pro:streamGenerateContent?alt=sse")
+        assert url.endswith("/models/gemini-2.5-flash:streamGenerateContent?alt=sse")
         assert headers["x-goog-api-key"] == "gemini-test"
         assert json["systemInstruction"] == {"parts": [{"text": "sys"}]}
         assert json["contents"] == [{"role": "user", "parts": [{"text": "user"}]}]
@@ -436,7 +440,7 @@ async def test_detect_adapters_prefers_gemini_api_over_cli_when_api_key_is_set(
 
     adapters = await detect_adapters(WorkerConfig(enable_mock=False, enable_real_adapters=True))
 
-    assert type(adapters["gemini-2.5-pro"]) is GeminiApiAdapter
+    assert type(adapters["gemini-2.5-flash"]) is GeminiApiAdapter
 
 
 @pytest.mark.asyncio
@@ -448,6 +452,7 @@ async def test_detect_adapters_requires_healthy_gemini_cli_probe(
 
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("XAI_API_KEY", raising=False)
+    monkeypatch.setenv("DIALECTICAL_LMSTUDIO_MODELS", "")
     monkeypatch.setattr(
         subprocess_base.shutil,
         "which",
@@ -470,6 +475,7 @@ async def test_detect_adapters_ignores_placeholder_api_keys(
 
     monkeypatch.setenv("GEMINI_API_KEY", "<optional-google-ai-studio-api-key>")
     monkeypatch.setenv("XAI_API_KEY", "<optional-xai-api-key>")
+    monkeypatch.setenv("DIALECTICAL_LMSTUDIO_MODELS", "")
     monkeypatch.setattr(subprocess_base.shutil, "which", lambda executable: None)
     monkeypatch.setattr("app.capabilities.discover_ollama_models", no_ollama_models)
 
@@ -567,10 +573,10 @@ async def test_detect_adapters_respects_allowed_models(monkeypatch: pytest.Monke
     monkeypatch.setattr("app.capabilities.discover_ollama_models", no_ollama_models)
 
     adapters = await detect_adapters(
-        WorkerConfig(enable_mock=False, enable_real_adapters=True, allowed_models=["codex-gpt-5"])
+        WorkerConfig(enable_mock=False, enable_real_adapters=True, allowed_models=["codex-gpt-5.5"])
     )
 
-    assert set(adapters) == {"codex-gpt-5"}
+    assert set(adapters) == {"codex-gpt-5.5"}
 
 
 @pytest.mark.asyncio

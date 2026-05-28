@@ -130,7 +130,7 @@ Expected:
 
 - `/` returns HTTP 200 or a redirect to HTTPS/200.
 - `/api/backends/status` returns JSON with worker `mac-mini` advertising both
-  `codex-gpt-5` and `lmstudio:google_gemma-4-e4b-it`.
+  `codex-gpt-5.5` and `lmstudio:google_gemma-4-e4b-it`.
 
 ## 6. Install The Named Tunnel As A Service
 
@@ -160,7 +160,7 @@ Expected for the simplified phase:
 
 - local coordinator ok,
 - local web ok,
-- `mac-mini` worker online with `codex-gpt-5`,
+- `mac-mini` worker online with `codex-gpt-5.5`,
 - some online local worker, normally `mac-mini`, has
   `lmstudio:google_gemma-4-e4b-it`,
 - LM Studio server ok,
@@ -189,7 +189,7 @@ The simplified local runtime is already working on this Mac:
 
 - coordinator: `http://127.0.0.1:8000`
 - web app: `http://127.0.0.1:3000`
-- worker `mac-mini`: online with `codex-gpt-5` and
+- worker `mac-mini`: online with `codex-gpt-5.5` and
   `lmstudio:google_gemma-4-e4b-it`
 - LM Studio has `google_gemma-4-e4b-it` loaded
 - `make local-single-machine-acceptance` passes

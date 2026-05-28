@@ -49,9 +49,9 @@ def worker_env_example(public_url: str, worker_name: str) -> str:
     ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL=0
     SKIP_STRICT_REPORT_VALIDATION=0
     ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL=0
-    WORKER_REQUIRED_CAPABILITIES=codex-gpt-5,gemini-2.5-pro
-    ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro
-    GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-pro>
+    WORKER_REQUIRED_CAPABILITIES=codex-gpt-5.5,gemini-2.5-flash
+    ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash
+    GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-flash>
     XAI_API_KEY=<optional-xai-api-key>
     ENGINE_DIR=/path/to/dialectical-engine
     """
@@ -106,7 +106,7 @@ def worker_register_script(public_url: str, worker_name: str) -> str:
     WORKER_REQUIRE_NAMED_HTTPS=1
     WORKER_NAME="${{WORKER_NAME:-{worker_name}}}"
     WORKER_VISIBLE_TIMEOUT="${{WORKER_VISIBLE_TIMEOUT:-120}}"
-    ALLOWED_MODELS="${{ALLOWED_MODELS:-codex-gpt-5}}"
+    ALLOWED_MODELS="${{ALLOWED_MODELS:-codex-gpt-5.5}}"
     PUBLIC_ENDPOINT_PYTHON="${{PUBLIC_ENDPOINT_PYTHON:-python3}}"
     PUBLIC_ENDPOINT_SCRIPT="${{PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}}"
     if [ ! -r "$PUBLIC_ENDPOINT_SCRIPT" ]; then
@@ -173,7 +173,7 @@ def worker_register_script(public_url: str, worker_name: str) -> str:
                         ;;
                 esac
                 case "$capability" in
-                    gemini-2.5-pro) NEEDS_GEMINI_API_KEY=1 ;;
+                    gemini-2.5-flash) NEEDS_GEMINI_API_KEY=1 ;;
                     grok-4) NEEDS_XAI_API_KEY=1 ;;
                 esac
                 SEEN_ALLOWED_MODELS="${{SEEN_ALLOWED_MODELS}}$capability,"
@@ -201,7 +201,7 @@ def worker_register_script(public_url: str, worker_name: str) -> str:
             ;;
     esac
     if [ "$NEEDS_GEMINI_API_KEY" = "1" ] && [ -z "$GEMINI_API_KEY_FOR_INSTALL" ]; then
-        echo "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro" >&2
+        echo "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash" >&2
         exit 2
     fi
     if [ "$NEEDS_XAI_API_KEY" = "1" ] && [ -z "$XAI_API_KEY_FOR_INSTALL" ]; then
@@ -239,7 +239,7 @@ def worker_real_models_script(public_url: str, worker_name: str) -> str:
     WORKER_NAME="${{WORKER_NAME:-{worker_name}}}"
     WORKER_VISIBLE_TIMEOUT="${{WORKER_VISIBLE_TIMEOUT:-180}}"
     WORKER_REQUIRE_NAMED_HTTPS=1
-    ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5,gemini-2.5-pro}}}}"
+    ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     PUBLIC_ENDPOINT_PYTHON="${{PUBLIC_ENDPOINT_PYTHON:-python3}}"
     PUBLIC_ENDPOINT_SCRIPT="${{PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}}"
     if [ ! -r "$PUBLIC_ENDPOINT_SCRIPT" ]; then
@@ -304,7 +304,7 @@ def worker_real_models_script(public_url: str, worker_name: str) -> str:
                         ;;
                 esac
                 case "$capability" in
-                    gemini-2.5-pro) NEEDS_GEMINI_API_KEY=1 ;;
+                    gemini-2.5-flash) NEEDS_GEMINI_API_KEY=1 ;;
                     grok-4) NEEDS_XAI_API_KEY=1 ;;
                 esac
                 SEEN_REQUIRED_CAPABILITIES="${{SEEN_REQUIRED_CAPABILITIES}}$capability,"
@@ -335,7 +335,7 @@ def worker_real_models_script(public_url: str, worker_name: str) -> str:
             ;;
     esac
     if [ "$NEEDS_GEMINI_API_KEY" = "1" ] && [ -z "$GEMINI_API_KEY_FOR_INSTALL" ]; then
-        echo "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro" >&2
+        echo "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash" >&2
         exit 2
     fi
     if [ "$NEEDS_XAI_API_KEY" = "1" ] && [ -z "$XAI_API_KEY_FOR_INSTALL" ]; then
@@ -375,7 +375,7 @@ def production_acceptance_script(public_url: str, worker_name: str) -> str:
     REQUIRE_DIFFERENT_REGEN_MODEL="${{REQUIRE_DIFFERENT_REGEN_MODEL:-1}}"
     ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${{ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}}"
     WORKER_STATUS_TIMEOUT="${{WORKER_STATUS_TIMEOUT:-180}}"
-    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"
+    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     export WORKER_REQUIRED_CAPABILITIES
     ACCEPTANCE_REPORT="${{ACCEPTANCE_REPORT:-$ACCEPTANCE_REPORT_DIR/dialectical-acceptance-$MODE.json}}"
     TWO_WORKER_ACCEPTANCE_REPORT="${{TWO_WORKER_ACCEPTANCE_REPORT:-$ACCEPTANCE_REPORT_DIR/dialectical-acceptance-two-worker.json}}"
@@ -1644,11 +1644,11 @@ def worker_readme(public_url: str, worker_name: str) -> str:
       quick-tunnel registration before the final named hostname exists.
     - `WORKER_NAME`: defaults to `{worker_name}`.
     - `ALLOWED_MODELS`: comma-separated model IDs the worker may advertise.
-      Defaults to `codex-gpt-5` until Claude/Gemini unattended auth is
+      Defaults to `codex-gpt-5.5` until Claude/Gemini unattended auth is
       configured. Pass `ALLOWED_MODELS=` to clear the pin and advertise all
       detected healthy adapters.
     - `GEMINI_API_KEY`: optional Google AI Studio API key. When set,
-      `gemini-2.5-pro` is available through the Gemini API path, which takes
+      `gemini-2.5-flash` is available through the Gemini API path, which takes
       precedence over Gemini CLI detection for the same model.
     - `XAI_API_KEY`: optional xAI API key for the Grok API fallback.
 
@@ -1683,7 +1683,7 @@ def worker_readme(public_url: str, worker_name: str) -> str:
     COORDINATOR_URL='https://debate.<your-domain>' \\
     ENGINE_DIR='/path/to/dialectical-engine' \\
     GEMINI_API_KEY='<google-ai-studio-api-key>' \\
-    ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro \\
+    ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash \\
     ./configure_worker_b_real_models.sh
     ```
 
@@ -1707,10 +1707,10 @@ def worker_readme(public_url: str, worker_name: str) -> str:
     GEMINI_API_KEY='<google-ai-studio-api-key>' \\
     make install-worker COORDINATOR_URL=http://localhost:8000 \\
         WORKER_NAME=mac-mini \\
-        ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro
+        ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash
     make verify-worker-visible COORDINATOR_URL='https://debate.<your-domain>' \\
         WORKER_NAME=mac-mini \\
-        WORKER_REQUIRED_CAPABILITIES=codex-gpt-5,gemini-2.5-pro \\
+        WORKER_REQUIRED_CAPABILITIES=codex-gpt-5.5,gemini-2.5-flash \\
         WORKER_REJECT_NON_PRODUCTION_CAPABILITIES=1
     ```
 
@@ -1726,7 +1726,7 @@ def worker_readme(public_url: str, worker_name: str) -> str:
     This verifies the new coordinator's token-free `/api/backends/status`
     endpoint before changing Worker B config, preserves the registered worker
     token, and does not require the user token again. Set
-    `ALLOWED_MODELS=codex-gpt-5` in the same command if you
+    `ALLOWED_MODELS=codex-gpt-5.5` in the same command if you
     also need to keep the Worker B model allowlist pinned and capability-checked
     during the switch.
     The switch helper rejects placeholder values, non-HTTPS URLs, and
@@ -1795,7 +1795,7 @@ def worker_readme(public_url: str, worker_name: str) -> str:
     run; `make status STATUS_FLAGS=--strict-production` will still reject
     quick-tunnel production reports.
     The standalone helper and consolidated Mac mini final sequence default
-    `WORKER_REQUIRED_CAPABILITIES` to `codex-gpt-5,gemini-2.5-pro` for final
+    `WORKER_REQUIRED_CAPABILITIES` to `codex-gpt-5.5,gemini-2.5-flash` for final
     different-model proof. Final different-model production acceptance requires
     `WORKER_REQUIRED_CAPABILITIES` to list at least two distinct, real,
     non-placeholder, non-mock model IDs before the helper prompts for the user
@@ -2023,7 +2023,7 @@ def final_production_check_script(public_url: str) -> str:
             exit 2
         fi
     fi
-    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"
+    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     export WORKER_REQUIRED_CAPABILITIES
     PREFLIGHT_FLAGS="${{PREFLIGHT_FLAGS:---require-installed-services --require-registered-worker --require-worker-api-keys-for-models $WORKER_REQUIRED_CAPABILITIES}}"
     REFRESH_LOCAL_PROOF="${{REFRESH_LOCAL_PROOF:-1}}"
@@ -2171,7 +2171,7 @@ def worker_a_real_models_script(public_url: str) -> str:
     WORKER_NAME="${{WORKER_NAME:-mac-mini}}"
     LOCAL_COORDINATOR_URL="${{LOCAL_COORDINATOR_URL:-http://localhost:8000}}"
     WORKER_VISIBLE_TIMEOUT="${{WORKER_VISIBLE_TIMEOUT:-180}}"
-    ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5,gemini-2.5-pro}}}}"
+    ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     RUN_BOOTSTRAP="${{RUN_BOOTSTRAP:-0}}"
     CLOUDFLARED_CONFIG="${{CLOUDFLARED_CONFIG:-$HOME/.cloudflared/config.yml}}"
     RUN_NAMED_TUNNEL_PREFLIGHT="${{RUN_NAMED_TUNNEL_PREFLIGHT:-1}}"
@@ -2273,7 +2273,7 @@ def worker_a_real_models_script(public_url: str) -> str:
                         ;;
                 esac
                 case "$capability" in
-                    gemini-2.5-pro) NEEDS_GEMINI_API_KEY=1 ;;
+                    gemini-2.5-flash) NEEDS_GEMINI_API_KEY=1 ;;
                     grok-4) NEEDS_XAI_API_KEY=1 ;;
                 esac
                 SEEN_REQUIRED_CAPABILITIES="${{SEEN_REQUIRED_CAPABILITIES}}$capability,"
@@ -2304,7 +2304,7 @@ def worker_a_real_models_script(public_url: str) -> str:
             ;;
     esac
     if [ "$NEEDS_GEMINI_API_KEY" = "1" ] && [ -z "$GEMINI_API_KEY_FOR_INSTALL" ]; then
-        echo "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro" >&2
+        echo "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash" >&2
         exit 2
     fi
     if [ "$NEEDS_XAI_API_KEY" = "1" ] && [ -z "$XAI_API_KEY_FOR_INSTALL" ]; then
@@ -2350,7 +2350,7 @@ def production_readiness_script(public_url: str) -> str:
     WORKER_A_NAME="${{WORKER_A_NAME:-mac-mini}}"
     WORKER_B_NAME="${{WORKER_B_NAME:-adesso-mbp}}"
     WORKER_VISIBLE_TIMEOUT="${{WORKER_VISIBLE_TIMEOUT:-180}}"
-    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"
+    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     export WORKER_REQUIRED_CAPABILITIES
     RUN_PREFLIGHT="${{RUN_PREFLIGHT:-1}}"
     ALLOW_SKIP_PREFLIGHT_FOR_REHEARSAL="${{ALLOW_SKIP_PREFLIGHT_FOR_REHEARSAL:-0}}"
@@ -2522,7 +2522,7 @@ def production_acceptance_sequence_script(public_url: str) -> str:
     ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${{ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}}"
     SKIP_STRICT_REPORT_VALIDATION="${{SKIP_STRICT_REPORT_VALIDATION:-0}}"
     ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL="${{ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL:-0}}"
-    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"
+    WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"
     ALLOW_QUICK_TUNNEL_ACCEPTANCE="${{ALLOW_QUICK_TUNNEL_ACCEPTANCE:-0}}"
     ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR="${{ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR:-0}}"
     REPORT_PYTHON="${{REPORT_PYTHON:-python3}}"
@@ -2963,7 +2963,7 @@ def handoff_readme(public_url: str) -> str:
     is explicitly set together with
     `ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL=1` for a rehearsal run.
     By default it requires
-    `codex-gpt-5,gemini-2.5-pro`, matching the final readiness check. It then
+    `codex-gpt-5.5,gemini-2.5-flash`, matching the final readiness check. It then
     unpacks the embedded Worker B onboarding bundle
     and validates the full onboarding bundle, including the public URL, shell
     syntax, endpoint verifier, registration guard, real-model setup, switch
@@ -3012,7 +3012,7 @@ def handoff_readme(public_url: str) -> str:
     Before running final production acceptance, configure both Worker A and
     Worker B with the same two-real-model allowlist. The embedded Worker B
     bundle includes `configure_worker_b_real_models.sh`; run it on the adesso
-    MacBook with `ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro` and a real
+    MacBook with `ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash` and a real
     `GEMINI_API_KEY`, then run this handoff bundle's
     `configure_worker_a_real_models.sh` on the Mac mini with the same
     allowlist and API key:
@@ -3020,7 +3020,7 @@ def handoff_readme(public_url: str) -> str:
     ```sh
     ENGINE_DIR=/path/to/dialectical-engine \\
     GEMINI_API_KEY='<google-ai-studio-api-key>' \\
-    ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro \\
+    ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash \\
     ./configure_worker_a_real_models.sh
     ```
 
@@ -3032,7 +3032,7 @@ def handoff_readme(public_url: str) -> str:
     the named public endpoint sees Worker A with the requested capabilities. If Worker A is
     already registered against the local coordinator, the installer reuses the
     saved worker token without prompting for the user token. The final
-    acceptance sequence uses `codex-gpt-5,gemini-2.5-pro` by default; set
+    acceptance sequence uses `codex-gpt-5.5,gemini-2.5-flash` by default; set
     `WORKER_REQUIRED_CAPABILITIES` only if the final real-model pair changes.
 
     `make status STATUS_FLAGS=--check-endpoints` exits nonzero if any checked

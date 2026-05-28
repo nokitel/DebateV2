@@ -14,9 +14,9 @@ DEFAULT_AUTH_REPORT = Path("/private/tmp/dialectical-model-auth-check.json")
 DEFAULT_HOSTING_REPORT = Path("/private/tmp/dialectical-hosting-status.json")
 DEFAULT_OUTPUT = Path("ManualSetup_TODO.md")
 SETUP_TRACKING_ISSUE = "https://github.com/DebateAIRO/debateairo/issues/5"
-CLAUDE_MODEL = "claude-sonnet-4.5"
-CODEX_MODEL = "codex-gpt-5"
-GEMINI_MODEL = "gemini-2.5-pro"
+CLAUDE_MODEL = "claude-sonnet-4-6"
+CODEX_MODEL = "codex-gpt-5.5"
+GEMINI_MODEL = "gemini-2.5-flash"
 LMSTUDIO_MODEL = "lmstudio:google_gemma-4-e4b-it"
 
 
@@ -189,7 +189,7 @@ def main() -> int:
             "Web app is reachable at `http://127.0.0.1:3000` with static assets.",
         ),
         checkbox(bool(workers), "At least one local worker is online."),
-        checkbox(CODEX_MODEL in caps, "`codex-gpt-5` is enabled on the local worker."),
+        checkbox(CODEX_MODEL in caps, "`codex-gpt-5.5` is enabled on the local worker."),
         checkbox(
             LMSTUDIO_MODEL in caps and bool(lm_studio.get("expected_model_loaded")),
             "`lmstudio:google_gemma-4-e4b-it` is enabled and loaded.",

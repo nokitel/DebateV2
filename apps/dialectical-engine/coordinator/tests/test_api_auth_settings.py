@@ -102,7 +102,7 @@ def test_public_debate_list_includes_model_metadata(db) -> None:
     worker = Worker(
         name="mac-mini",
         token_hash=hash_token("worker-token"),
-        capabilities=["codex-gpt-5"],
+        capabilities=["codex-gpt-5.5"],
         last_seen=now_utc(),
         status="online",
     )
@@ -129,7 +129,7 @@ def test_public_debate_list_includes_model_metadata(db) -> None:
     debate.root_node_id = node.id
     generation = Generation(
         node_id=node.id,
-        model_id="codex-gpt-5",
+        model_id="codex-gpt-5.5",
         role="decomposer",
         argument="Initial decomposition.",
         prompt_version="v1",
@@ -158,7 +158,7 @@ def test_public_debate_list_includes_model_metadata(db) -> None:
 
     assert response.status_code == 200
     item = response.json()["items"][0]
-    assert item["models"] == ["claude-opus-4.7", "codex-gpt-5"]
+    assert item["models"] == ["claude-opus-4.7", "codex-gpt-5.5"]
     assert datetime.fromisoformat(item["created_at"]).tzinfo is not None
     assert datetime.fromisoformat(item["completed_at"]).tzinfo is not None
 
@@ -168,7 +168,7 @@ def test_user_auth_required_for_archive_regenerate_and_history(db) -> None:
     worker = Worker(
         name="mac-mini",
         token_hash=hash_token("worker-token"),
-        capabilities=["codex-gpt-5"],
+        capabilities=["codex-gpt-5.5"],
         last_seen=now_utc(),
         status="online",
     )
@@ -503,7 +503,7 @@ def test_worker_reregistration_requeues_active_job_and_rotates_token(db) -> None
     response = client.post(
         "/api/workers/register",
         headers=USER_HEADERS,
-        json={"name": " adesso-mbp ", "capabilities": [" codex-gpt-5 ", "codex-gpt-5"]},
+        json={"name": " adesso-mbp ", "capabilities": [" codex-gpt-5.5 ", "codex-gpt-5.5"]},
     )
 
     assert response.status_code == 200
@@ -511,12 +511,12 @@ def test_worker_reregistration_requeues_active_job_and_rotates_token(db) -> None
     assert payload["worker_id"] == worker.id
     assert payload["worker_token"] != "old-worker-token"
     assert payload["name"] == "adesso-mbp"
-    assert payload["capabilities"] == ["codex-gpt-5"]
+    assert payload["capabilities"] == ["codex-gpt-5.5"]
     db.expire_all()
     refreshed_worker = db.get(Worker, worker.id)
     refreshed_job = db.get(Job, running_job.id)
     assert refreshed_worker.current_job_id is None
-    assert refreshed_worker.capabilities == ["codex-gpt-5"]
+    assert refreshed_worker.capabilities == ["codex-gpt-5.5"]
     assert refreshed_worker.name == "adesso-mbp"
     assert refreshed_worker.status == "online"
     assert refreshed_job.status == "pending"
@@ -533,13 +533,13 @@ def test_worker_reregistration_requeues_active_job_and_rotates_token(db) -> None
     new_heartbeat = client.post(
         f"/api/workers/{worker.id}/heartbeat",
         headers={"Authorization": f"Bearer {payload['worker_token']}"},
-        json={"capabilities": [" codex-gpt-5 ", "codex-gpt-5"]},
+        json={"capabilities": [" codex-gpt-5.5 ", "codex-gpt-5.5"]},
     )
     assert old_heartbeat.status_code == 403
     assert new_heartbeat.status_code == 200
     db.expire_all()
     assert len(db.scalars(select(Worker)).all()) == 1
-    assert db.get(Worker, worker.id).capabilities == ["codex-gpt-5"]
+    assert db.get(Worker, worker.id).capabilities == ["codex-gpt-5.5"]
 
 
 def test_completed_job_rejects_late_worker_mutations(db) -> None:
@@ -782,7 +782,7 @@ def test_settings_api_persists_enabled_models_and_filters_created_jobs(db) -> No
     worker = Worker(
         name="mac-mini",
         token_hash=hash_token("worker-token"),
-        capabilities=["mock-local", "codex-gpt-5"],
+        capabilities=["mock-local", "codex-gpt-5.5"],
         last_seen=now_utc(),
         status="online",
     )
@@ -793,21 +793,21 @@ def test_settings_api_persists_enabled_models_and_filters_created_jobs(db) -> No
     response = client.put(
         "/api/settings",
         headers=USER_HEADERS,
-        json={"enabled_models": [" codex-gpt-5 ", "codex-gpt-5"]},
+        json={"enabled_models": [" codex-gpt-5.5 ", "codex-gpt-5.5"]},
     )
 
     assert response.status_code == 200
-    assert response.json()["enabled_models"] == ["codex-gpt-5"]
-    assert "codex-gpt-5" in response.json()["configured_models"]
+    assert response.json()["enabled_models"] == ["codex-gpt-5.5"]
+    assert "codex-gpt-5.5" in response.json()["configured_models"]
     assert "mock-local" in response.json()["configured_models"]
     assert response.json()["grok_monthly_spend_usd"] == 0
     assert response.json()["grok_pricing_usd_per_million_tokens"] == {"input": 1.25, "output": 2.5}
     assert response.json()["model_monthly_caps_usd"]["grok-4"] == 25.0
-    assert response.json()["model_monthly_spend_usd"]["codex-gpt-5"] == 0
+    assert response.json()["model_monthly_spend_usd"]["codex-gpt-5.5"] == 0
     assert response.json()["model_pricing_usd_per_million_tokens"]["grok-4"] == {"input": 1.25, "output": 2.5}
     persisted = db.get(Setting, RUNTIME_SETTINGS_KEY)
     assert persisted is not None
-    assert persisted.value["enabled_models"] == ["codex-gpt-5"]
+    assert persisted.value["enabled_models"] == ["codex-gpt-5.5"]
     assert "configured_models" not in persisted.value
     assert "grok_monthly_spend_usd" not in persisted.value
     assert "model_monthly_spend_usd" not in persisted.value
@@ -821,7 +821,7 @@ def test_settings_api_persists_enabled_models_and_filters_created_jobs(db) -> No
     assert created.status_code == 200
     job = db.scalar(select(Job).where(Job.debate_id == created.json()["id"]))
     assert job is not None
-    assert job.required_model == "codex-gpt-5"
+    assert job.required_model == "codex-gpt-5.5"
 
 
 def test_settings_api_persists_model_monthly_caps(db) -> None:
@@ -832,16 +832,16 @@ def test_settings_api_persists_model_monthly_caps(db) -> None:
     response = client.put(
         "/api/settings",
         headers=USER_HEADERS,
-        json={"model_monthly_caps_usd": {" codex-gpt-5 ": 3.5, "mock-local": 0}},
+        json={"model_monthly_caps_usd": {" codex-gpt-5.5 ": 3.5, "mock-local": 0}},
     )
 
     assert response.status_code == 200
-    assert response.json()["model_monthly_caps_usd"]["codex-gpt-5"] == 3.5
+    assert response.json()["model_monthly_caps_usd"]["codex-gpt-5.5"] == 3.5
     assert response.json()["model_monthly_caps_usd"]["mock-local"] == 0
     assert response.json()["grok_monthly_cap_usd"] == 25.0
     persisted = db.get(Setting, RUNTIME_SETTINGS_KEY)
     assert persisted is not None
-    assert persisted.value["model_monthly_caps_usd"] == {"codex-gpt-5": 3.5, "mock-local": 0.0}
+    assert persisted.value["model_monthly_caps_usd"] == {"codex-gpt-5.5": 3.5, "mock-local": 0.0}
     assert persisted.value["grok_monthly_cap_usd"] == 25.0
 
     legacy = client.put("/api/settings", headers=USER_HEADERS, json={"grok_monthly_cap_usd": 7})
@@ -874,7 +874,7 @@ def test_regenerate_validates_explicit_model_id_before_queuing(db) -> None:
     worker = Worker(
         name="mac-mini",
         token_hash=hash_token("worker-token"),
-        capabilities=["mock-local", "codex-gpt-5"],
+        capabilities=["mock-local", "codex-gpt-5.5"],
         last_seen=now_utc(),
         status="online",
     )
@@ -950,12 +950,12 @@ def test_regenerate_validates_explicit_model_id_before_queuing(db) -> None:
     trimmed_model = client.post(
         f"/api/nodes/{node.id}/regenerate",
         headers=USER_HEADERS,
-        json={"model_id": " codex-gpt-5 "},
+        json={"model_id": " codex-gpt-5.5 "},
     )
 
     assert trimmed_model.status_code == 200
     queued_job = db.get(Job, trimmed_model.json()["job_id"])
-    assert queued_job.required_model == "codex-gpt-5"
+    assert queued_job.required_model == "codex-gpt-5.5"
 
 
 def test_settings_api_rejects_invalid_routing_without_changing_runtime(db) -> None:
@@ -1066,7 +1066,7 @@ def test_settings_api_reads_and_repairs_legacy_malformed_runtime_settings(db) ->
             key=RUNTIME_SETTINGS_KEY,
             value={
                 "routing": {"proposer": "not-an-object"},
-                "enabled_models": [" codex-gpt-5 ", " ", None, "codex-gpt-5", "retired-model"],
+                "enabled_models": [" codex-gpt-5.5 ", " ", None, "codex-gpt-5.5", "retired-model"],
                 "grok_monthly_cap_usd": "not-a-number",
             },
         )
@@ -1077,7 +1077,7 @@ def test_settings_api_reads_and_repairs_legacy_malformed_runtime_settings(db) ->
     current = client.get("/api/settings", headers=USER_HEADERS)
 
     assert current.status_code == 200
-    assert current.json()["enabled_models"] == ["codex-gpt-5"]
+    assert current.json()["enabled_models"] == ["codex-gpt-5.5"]
     assert current.json()["grok_monthly_cap_usd"] == 25.0
     assert current.json()["routing"] == routing_engine.as_dict()
 
@@ -1098,7 +1098,7 @@ def test_persisted_valid_routing_loads_into_runtime_engine(db) -> None:
     _public_hits.clear()
     reset_routing()
     persisted_routing = {
-        "decomposer": {"primary": "codex-gpt-5", "fallback": ["mock-local"]},
+        "decomposer": {"primary": "codex-gpt-5.5", "fallback": ["mock-local"]},
         "synthesizer": {"primary": "mock-local", "fallback": []},
     }
     db.add(Setting(key=RUNTIME_SETTINGS_KEY, value={"routing": persisted_routing}))
@@ -1107,11 +1107,11 @@ def test_persisted_valid_routing_loads_into_runtime_engine(db) -> None:
     apply_persisted_runtime_settings(db)
 
     try:
-        assert routing_engine.roles["decomposer"]["primary"] == "codex-gpt-5"
+        assert routing_engine.roles["decomposer"]["primary"] == "codex-gpt-5.5"
         worker = Worker(
             name="mac-mini",
             token_hash=hash_token("worker-token"),
-            capabilities=["mock-local", "codex-gpt-5"],
+            capabilities=["mock-local", "codex-gpt-5.5"],
             last_seen=now_utc(),
             status="online",
         )
@@ -1121,7 +1121,7 @@ def test_persisted_valid_routing_loads_into_runtime_engine(db) -> None:
         debate = create_debate(db, "Should cities ban cars?", {"max_depth": 1})
         job = db.scalar(select(Job).where(Job.debate_id == debate.id))
 
-        assert job.required_model == "codex-gpt-5"
+        assert job.required_model == "codex-gpt-5.5"
     finally:
         reset_routing()
 
@@ -1131,10 +1131,10 @@ def test_settings_api_accepts_valid_routing_and_normalizes_models(db) -> None:
     reset_routing()
     client = TestClient(app)
     routing = {
-        "decomposer": {"primary": " mock-local ", "fallback": [" codex-gpt-5 "]},
-        "proposer": {"pool": [" mock-local ", "codex-gpt-5"], "strategy": "round_robin"},
+        "decomposer": {"primary": " mock-local ", "fallback": [" codex-gpt-5.5 "]},
+        "proposer": {"pool": [" mock-local ", "codex-gpt-5.5"], "strategy": "round_robin"},
         "opponent": {
-            "pool": ["mock-local", " codex-gpt-5 "],
+            "pool": ["mock-local", " codex-gpt-5.5 "],
             "strategy": "round_robin",
             "constraint": "not_same_as_claim_author",
         },
@@ -1147,9 +1147,9 @@ def test_settings_api_accepts_valid_routing_and_normalizes_models(db) -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["routing"]["decomposer"]["primary"] == "mock-local"
-        assert payload["routing"]["decomposer"]["fallback"] == ["codex-gpt-5"]
-        assert payload["routing"]["proposer"]["pool"] == ["mock-local", "codex-gpt-5"]
-        assert routing_engine.roles["opponent"]["pool"] == ["mock-local", "codex-gpt-5"]
+        assert payload["routing"]["decomposer"]["fallback"] == ["codex-gpt-5.5"]
+        assert payload["routing"]["proposer"]["pool"] == ["mock-local", "codex-gpt-5.5"]
+        assert routing_engine.roles["opponent"]["pool"] == ["mock-local", "codex-gpt-5.5"]
         persisted = db.get(Setting, RUNTIME_SETTINGS_KEY)
         assert persisted is not None
         assert persisted.value["routing"]["synthesizer"]["primary"] == "mock-local"

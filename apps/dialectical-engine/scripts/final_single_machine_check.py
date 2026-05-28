@@ -14,9 +14,9 @@ DEFAULT_ACCEPTANCE_REPORT = Path("/private/tmp/dialectical-local-single-machine-
 DEFAULT_AUTH_REPORT = Path("/private/tmp/dialectical-model-auth-check.json")
 DEFAULT_HOSTING_REPORT = Path("/private/tmp/dialectical-hosting-status.json")
 DEFAULT_REPORT = Path("/private/tmp/dialectical-final-single-machine-check.json")
-CODEX_MODEL = "codex-gpt-5"
-CLAUDE_MODEL = "claude-sonnet-4.5"
-GEMINI_MODEL = "gemini-2.5-pro"
+CODEX_MODEL = "codex-gpt-5.5"
+CLAUDE_MODEL = "claude-sonnet-4-6"
+GEMINI_MODEL = "gemini-2.5-flash"
 LMSTUDIO_MODEL = "lmstudio:google_gemma-4-e4b-it"
 
 

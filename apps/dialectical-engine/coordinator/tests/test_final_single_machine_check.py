@@ -31,7 +31,7 @@ def local_report(*, named_public: bool = True) -> dict[str, object]:
                             {
                                 "name": "mac-mini",
                                 "status": "online",
-                                "capabilities": ["codex-gpt-5", "lmstudio:google_gemma-4-e4b-it"],
+                                "capabilities": ["codex-gpt-5.5", "lmstudio:google_gemma-4-e4b-it"],
                             }
                         ]
                     }

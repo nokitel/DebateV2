@@ -35,7 +35,7 @@ REQUIRED_CLOUDFLARED_CREDENTIAL_KEYS = ("AccountTag", "TunnelID", "TunnelSecret"
 GROK_PROMPT_FLAG_PATTERN = re.compile(r"(?<!\S)(?:-p|--prompt)(?:[=\s,]|$)")
 ADAPTER_API_ENV_VARS = ("GEMINI_API_KEY", "XAI_API_KEY")
 API_KEY_MODEL_REQUIREMENTS = {
-    "gemini-2.5-pro": "GEMINI_API_KEY",
+    "gemini-2.5-flash": "GEMINI_API_KEY",
     "grok-4": "XAI_API_KEY",
 }
 INSTALLED_AGENT_SPECS = {
@@ -669,9 +669,9 @@ def real_adapter_checks(allow_no_real_adapters: bool, adapter_api_env: dict[str,
     detected: list[str] = []
     adapter_api_env = adapter_api_env or {}
     for command, model in (
-        ("claude", "claude-sonnet-4.5"),
-        ("codex", "codex-gpt-5"),
-        ("gemini", "gemini-2.5-pro"),
+        ("claude", "claude-sonnet-4-6"),
+        ("codex", "codex-gpt-5.5"),
+        ("gemini", "gemini-2.5-flash"),
         ("grok", "grok-4"),
     ):
         path = shutil.which(command)
@@ -715,7 +715,7 @@ def real_adapter_checks(allow_no_real_adapters: bool, adapter_api_env: dict[str,
         checks.append(warn_check("adapter-credential:xai-api", "XAI_API_KEY is not set to a real value"))
 
     if source := adapter_api_credential_source("GEMINI_API_KEY", adapter_api_env):
-        detected.append("gemini-2.5-pro")
+        detected.append("gemini-2.5-flash")
         checks.append(pass_check("adapter-credential:gemini-api", f"GEMINI_API_KEY is set in {source}"))
         checks.append(warn_check("adapter-auth:gemini-api", "API key is present but no model request was made"))
     else:

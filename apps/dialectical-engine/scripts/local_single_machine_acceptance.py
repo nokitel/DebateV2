@@ -14,7 +14,7 @@ DEFAULT_CHECK_REPORT = Path("/private/tmp/dialectical-local-single-machine-check
 DEFAULT_LMSTUDIO_REPORT = Path("/private/tmp/dialectical-lmstudio-job-probe.json")
 DEFAULT_REPORT = Path("/private/tmp/dialectical-local-single-machine-acceptance.json")
 EXPECTED_WORKERS = {
-    "mac-mini": "codex-gpt-5",
+    "mac-mini": "codex-gpt-5.5",
 }
 REQUIRED_CAPABILITIES = ["lmstudio:google_gemma-4-e4b-it"]
 

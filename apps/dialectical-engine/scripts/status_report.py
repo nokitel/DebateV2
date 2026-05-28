@@ -371,10 +371,10 @@ ACCEPTANCE_REPORTS = {
     "rejoin-two-worker": Path("/private/tmp/dialectical-acceptance-rejoin-two-worker.json"),
 }
 PRODUCTION_ACCEPTANCE_SEQUENCE = ("two-worker", "failover-one-worker", "rejoin-two-worker")
-DEFAULT_FINAL_REQUIRED_CAPABILITIES = ("codex-gpt-5", "gemini-2.5-pro")
+DEFAULT_FINAL_REQUIRED_CAPABILITIES = ("codex-gpt-5.5", "gemini-2.5-flash")
 FINAL_PRODUCTION_WORKER_NAMES = ("mac-mini", "adesso-mbp")
 API_KEY_MODEL_REQUIREMENTS = {
-    "gemini-2.5-pro": "GEMINI_API_KEY",
+    "gemini-2.5-flash": "GEMINI_API_KEY",
     "grok-4": "XAI_API_KEY",
 }
 PRODUCTION_ACCEPTANCE_EXPECTATIONS = {
@@ -1153,7 +1153,7 @@ HANDOFF_FINAL_CHECK_MARKERS = {
     'PUBLIC_URL="${PUBLIC_URL:-$COORDINATOR_URL}"',
     "final production check requires COORDINATOR_URL to match installed named Cloudflare tunnel config",
     "final production check requires PUBLIC_URL to match installed named Cloudflare tunnel config",
-    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}"',
+    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}"',
     "export WORKER_REQUIRED_CAPABILITIES",
     'PREFLIGHT_FLAGS="${PREFLIGHT_FLAGS:---require-installed-services --require-registered-worker --require-worker-api-keys-for-models $WORKER_REQUIRED_CAPABILITIES}"',
     'REFRESH_LOCAL_PROOF="${REFRESH_LOCAL_PROOF:-1}"',
@@ -1217,7 +1217,7 @@ HANDOFF_ACCEPTANCE_SEQUENCE_MARKERS = {
     'ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}"',
     'SKIP_STRICT_REPORT_VALIDATION="${SKIP_STRICT_REPORT_VALIDATION:-0}"',
     'ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL="${ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL:-0}"',
-    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}"',
+    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}"',
     'ALLOW_QUICK_TUNNEL_ACCEPTANCE="${ALLOW_QUICK_TUNNEL_ACCEPTANCE:-0}"',
     'ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR="${ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR:-0}"',
     'REPORT_PYTHON="${REPORT_PYTHON:-python3}"',
@@ -1304,7 +1304,7 @@ HANDOFF_PRODUCTION_READINESS_MARKERS = {
     ": \"${ENGINE_DIR:?set ENGINE_DIR to the dialectical-engine checkout on the Mac mini}\"",
     'WORKER_A_NAME="${WORKER_A_NAME:-mac-mini}"',
     'WORKER_B_NAME="${WORKER_B_NAME:-adesso-mbp}"',
-    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}"',
+    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}"',
     "export WORKER_REQUIRED_CAPABILITIES",
     'RUN_PREFLIGHT="${RUN_PREFLIGHT:-1}"',
     'ALLOW_SKIP_PREFLIGHT_FOR_REHEARSAL="${ALLOW_SKIP_PREFLIGHT_FOR_REHEARSAL:-0}"',
@@ -1347,7 +1347,7 @@ HANDOFF_PRODUCTION_READINESS_MARKERS = {
 HANDOFF_WORKER_A_REAL_MODELS_MARKERS = {
     ": \"${ENGINE_DIR:?set ENGINE_DIR to the dialectical-engine checkout on the Mac mini}\"",
     'LOCAL_COORDINATOR_URL="${LOCAL_COORDINATOR_URL:-http://localhost:8000}"',
-    'ALLOWED_MODELS="${ALLOWED_MODELS:-${REAL_MODEL_CAPABILITIES:-codex-gpt-5,gemini-2.5-pro}}"',
+    'ALLOWED_MODELS="${ALLOWED_MODELS:-${REAL_MODEL_CAPABILITIES:-codex-gpt-5.5,gemini-2.5-flash}}"',
     'CLOUDFLARED_CONFIG="${CLOUDFLARED_CONFIG:-$HOME/.cloudflared/config.yml}"',
     'RUN_NAMED_TUNNEL_PREFLIGHT="${RUN_NAMED_TUNNEL_PREFLIGHT:-1}"',
     'ALLOW_SKIP_NAMED_TUNNEL_PREFLIGHT_FOR_REHEARSAL="${ALLOW_SKIP_NAMED_TUNNEL_PREFLIGHT_FOR_REHEARSAL:-0}"',
@@ -1375,7 +1375,7 @@ HANDOFF_WORKER_A_REAL_MODELS_MARKERS = {
     "Worker A real-model setup requires real model IDs in ALLOWED_MODELS, not mock model IDs",
     "Worker A real-model setup requires distinct model IDs in ALLOWED_MODELS, not duplicate model IDs",
     "Worker A real-model setup requires ALLOWED_MODELS to list at least two distinct real model IDs",
-    "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+    "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
     "Worker A real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
     "GEMINI_API_KEY_FOR_INSTALL=",
     "XAI_API_KEY_FOR_INSTALL=",
@@ -1414,7 +1414,7 @@ WORKER_B_REGISTER_SCRIPT_MARKERS = {
     "Worker B registration requires a real named Cloudflare hostname, not a placeholder",
     "Worker B registration requires a public named Cloudflare hostname, not a local URL",
     "Worker B registration requires a named Cloudflare hostname",
-    'ALLOWED_MODELS="${ALLOWED_MODELS:-codex-gpt-5}"',
+    'ALLOWED_MODELS="${ALLOWED_MODELS:-codex-gpt-5.5}"',
     'PUBLIC_ENDPOINT_PYTHON="${PUBLIC_ENDPOINT_PYTHON:-python3}"',
     'PUBLIC_ENDPOINT_SCRIPT="${PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}"',
     'PUBLIC_ENDPOINT_SCRIPT="$ENGINE_DIR/scripts/verify_public_endpoint.py"',
@@ -1427,7 +1427,7 @@ WORKER_B_REGISTER_SCRIPT_MARKERS = {
     "Worker B registration requires real model IDs in ALLOWED_MODELS, not placeholders",
     "Worker B registration requires real model IDs in ALLOWED_MODELS, not mock model IDs",
     "Worker B registration requires distinct model IDs in ALLOWED_MODELS, not duplicate model IDs",
-    "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+    "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
     "Worker B registration requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
     'USER_TOKEN="${USER_TOKEN:-}"',
     "No USER_TOKEN set; make install-worker will reuse an existing matching worker registration",
@@ -1442,7 +1442,7 @@ WORKER_B_REGISTER_SCRIPT_MARKERS = {
     "WORKER_REJECT_NON_PRODUCTION_CAPABILITIES=1",
 }
 WORKER_B_REAL_MODELS_SCRIPT_MARKERS = {
-    'ALLOWED_MODELS="${ALLOWED_MODELS:-${REAL_MODEL_CAPABILITIES:-codex-gpt-5,gemini-2.5-pro}}"',
+    'ALLOWED_MODELS="${ALLOWED_MODELS:-${REAL_MODEL_CAPABILITIES:-codex-gpt-5.5,gemini-2.5-flash}}"',
     'PUBLIC_ENDPOINT_PYTHON="${PUBLIC_ENDPOINT_PYTHON:-python3}"',
     'PUBLIC_ENDPOINT_SCRIPT="${PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}"',
     'PUBLIC_ENDPOINT_SCRIPT="$ENGINE_DIR/scripts/verify_public_endpoint.py"',
@@ -1462,7 +1462,7 @@ WORKER_B_REAL_MODELS_SCRIPT_MARKERS = {
     "not mock model IDs",
     "not duplicate model IDs",
     "Worker B real-model setup requires ALLOWED_MODELS to list at least two distinct real model IDs",
-    "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+    "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
     "Worker B real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
     "GEMINI_API_KEY_FOR_INSTALL=",
     "XAI_API_KEY_FOR_INSTALL=",
@@ -1516,7 +1516,7 @@ WORKER_B_ACCEPTANCE_SCRIPT_MARKERS = {
     'REQUIRE_DIFFERENT_REGEN_MODEL="${REQUIRE_DIFFERENT_REGEN_MODEL:-1}"',
     'ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}"',
     "production acceptance requires different-model regeneration proof",
-    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}"',
+    'WORKER_REQUIRED_CAPABILITIES="${WORKER_REQUIRED_CAPABILITIES:-${ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}"',
     "export WORKER_REQUIRED_CAPABILITIES",
     "WORKER_REJECT_NON_PRODUCTION_CAPABILITIES=1",
     'ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR="${ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR:-0}"',
@@ -1721,9 +1721,9 @@ WORKER_B_ENV_MARKERS = {
     "ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL=0",
     "SKIP_STRICT_REPORT_VALIDATION=0",
     "ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL=0",
-    "WORKER_REQUIRED_CAPABILITIES=codex-gpt-5,gemini-2.5-pro",
-    "ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro",
-    "GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-pro>",
+    "WORKER_REQUIRED_CAPABILITIES=codex-gpt-5.5,gemini-2.5-flash",
+    "ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash",
+    "GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-flash>",
     "XAI_API_KEY=<optional-xai-api-key>",
 }
 HANDOFF_WORKER_B_BUNDLE = "dialectical-handoff/bundles/dialectical-worker-b-onboarding.tgz"
@@ -2116,15 +2116,23 @@ def worker_resilience_summary() -> str:
 def real_adapters_summary() -> str:
     claude_markers = [
         "class ClaudeCliAdapter(SubprocessStreamingAdapter):",
-        'model_id = "claude-sonnet-4.5"',
-        'return ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]',
+        'model_id = "claude-sonnet-4-6"',
+        '"--model",',
+        "self.model_id",
+        '"--output-format",',
+        '"--verbose"',
         "claude_stream_json_delta",
     ]
     codex_markers = [
         "class CodexCliAdapter(SubprocessStreamingAdapter):",
-        'model_id = "codex-gpt-5"',
+        'model_id = "codex-gpt-5.5"',
+        'cli_model = "gpt-5.5"',
         "Keep the answer under {max_tokens} tokens.",
-        'return ["codex", "exec", "--skip-git-repo-check", "--sandbox", "workspace-write", prompt]',
+        '"--skip-git-repo-check",',
+        '"--sandbox",',
+        '"workspace-write",',
+        '"--model",',
+        "self.cli_model",
     ]
     grok_markers = [
         "PROMPT_FLAG_PATTERN",
@@ -2199,7 +2207,7 @@ def real_adapters_summary() -> str:
 def gemini_api_summary() -> str:
     adapter_markers = [
         "class GeminiApiAdapter:",
-        'model_id = "gemini-2.5-pro"',
+        'model_id = "gemini-2.5-flash"',
         "from app.adapters.credentials import configured_api_key",
         'configured_api_key("GEMINI_API_KEY")',
         "streamGenerateContent?alt=sse",
@@ -2210,10 +2218,13 @@ def gemini_api_summary() -> str:
     ]
     gemini_cli_markers = [
         "class GeminiCliAdapter(SubprocessStreamingAdapter):",
+        'model_id = "gemini-2.5-flash"',
         "async def health_check(self) -> bool:",
         "await super().health_check()",
         "asyncio.create_subprocess_exec(",
         '"gemini",',
+        '"-m",',
+        "self.model_id",
         '"Respond with exactly OK.",',
         '"--output-format",',
         '"text",',
@@ -2250,7 +2261,7 @@ def gemini_api_summary() -> str:
         "def adapter_api_credential_source(",
         "os.getenv(variable)",
         'adapter_api_env.get(variable)',
-        'detected.append("gemini-2.5-pro")',
+        'detected.append("gemini-2.5-flash")',
         'detected.append("grok-4")',
         'pass_check("adapter-credential:gemini-api", f"GEMINI_API_KEY is set in {source}")',
         'pass_check("adapter-credential:xai-api", f"XAI_API_KEY is set in {source}")',
@@ -2565,7 +2576,7 @@ def handoff_generator_summary() -> str:
         "Worker B registration requires a real named Cloudflare hostname, not a placeholder",
         "Worker B registration requires a public named Cloudflare hostname, not a local URL",
         "Worker B registration requires a named Cloudflare hostname",
-        'ALLOWED_MODELS="${{ALLOWED_MODELS:-codex-gpt-5}}"',
+        'ALLOWED_MODELS="${{ALLOWED_MODELS:-codex-gpt-5.5}}"',
         "SEEN_ALLOWED_MODELS=,",
         "NEEDS_GEMINI_API_KEY=0",
         "NEEDS_XAI_API_KEY=0",
@@ -2574,7 +2585,7 @@ def handoff_generator_summary() -> str:
         "Worker B registration requires real model IDs in ALLOWED_MODELS, not placeholders",
         "Worker B registration requires real model IDs in ALLOWED_MODELS, not mock model IDs",
         "Worker B registration requires distinct model IDs in ALLOWED_MODELS, not duplicate model IDs",
-        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
         "Worker B registration requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
         'PUBLIC_ENDPOINT_PYTHON="${{PUBLIC_ENDPOINT_PYTHON:-python3}}"',
         'PUBLIC_ENDPOINT_SCRIPT="${{PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}}"',
@@ -2590,14 +2601,14 @@ def handoff_generator_summary() -> str:
         'WORKER_REQUIRED_CAPABILITIES="$ALLOWED_MODELS"',
         "WORKER_REJECT_NON_PRODUCTION_CAPABILITIES=1",
         "def worker_real_models_script(public_url: str, worker_name: str) -> str:",
-        'ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5,gemini-2.5-pro}}}}"',
+        'ALLOWED_MODELS="${{ALLOWED_MODELS:-${{REAL_MODEL_CAPABILITIES:-codex-gpt-5.5,gemini-2.5-flash}}}}"',
         "Worker B real-model setup requires an HTTPS named Cloudflare coordinator URL",
         "Worker B real-model setup requires a real named Cloudflare hostname, not a placeholder",
         "Worker B real-model setup requires a public named Cloudflare hostname, not a local URL",
         "Worker B real-model setup requires a named Cloudflare hostname, not a trycloudflare.com quick tunnel",
         "Worker B real-model setup requires non-empty model IDs in ALLOWED_MODELS",
         "Worker B real-model setup requires ALLOWED_MODELS to list at least two distinct real model IDs",
-        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
         "Worker B real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
         'PUBLIC_ENDPOINT_PYTHON="${{PUBLIC_ENDPOINT_PYTHON:-python3}}"',
         'PUBLIC_ENDPOINT_SCRIPT="${{PUBLIC_ENDPOINT_SCRIPT:-$SCRIPT_DIR/verify_public_endpoint.py}}"',
@@ -2628,7 +2639,7 @@ def handoff_generator_summary() -> str:
         'REQUIRE_DIFFERENT_REGEN_MODEL="${{REQUIRE_DIFFERENT_REGEN_MODEL:-1}}"',
         'ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${{ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}}"',
         "production acceptance requires different-model regeneration proof",
-        'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"',
+        'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"',
         'TWO_WORKER_ACCEPTANCE_REPORT="${{TWO_WORKER_ACCEPTANCE_REPORT:-$ACCEPTANCE_REPORT_DIR/dialectical-acceptance-two-worker.json}}"',
         'FAILOVER_ACCEPTANCE_REPORT="${{FAILOVER_ACCEPTANCE_REPORT:-$ACCEPTANCE_REPORT_DIR/dialectical-acceptance-failover-one-worker.json}}"',
         'REJOIN_ACCEPTANCE_REPORT="${{REJOIN_ACCEPTANCE_REPORT:-$ACCEPTANCE_REPORT_DIR/dialectical-acceptance-rejoin-two-worker.json}}"',
@@ -2700,9 +2711,9 @@ def handoff_generator_summary() -> str:
         "ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL=0",
         "SKIP_STRICT_REPORT_VALIDATION=0",
         "ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL=0",
-        "WORKER_REQUIRED_CAPABILITIES=codex-gpt-5,gemini-2.5-pro",
-        "ALLOWED_MODELS=codex-gpt-5,gemini-2.5-pro",
-        "GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-pro>",
+        "WORKER_REQUIRED_CAPABILITIES=codex-gpt-5.5,gemini-2.5-flash",
+        "ALLOWED_MODELS=codex-gpt-5.5,gemini-2.5-flash",
+        "GEMINI_API_KEY=<google-ai-studio-api-key-for-gemini-2.5-flash>",
         'shutil.copy2(verifier, root / "verify_public_endpoint.py")',
         "def named_tunnel_readme() -> str:",
         "This template replaces the temporary `trycloudflare.com` quick tunnel",
@@ -2729,7 +2740,7 @@ def handoff_generator_summary() -> str:
         'CONFIG_PUBLIC_URL="https://$CONFIG_HOSTNAME"',
         'COORDINATOR_URL="${{COORDINATOR_URL:-${{CONFIG_PUBLIC_URL:-{public_url}}}}}"',
         'PUBLIC_URL="${{PUBLIC_URL:-$COORDINATOR_URL}}"',
-                'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"',
+                'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"',
                 "export WORKER_REQUIRED_CAPABILITIES",
                 'PREFLIGHT_FLAGS="${{PREFLIGHT_FLAGS:---require-installed-services --require-registered-worker --require-worker-api-keys-for-models $WORKER_REQUIRED_CAPABILITIES}}"',
                 'REFRESH_LOCAL_PROOF="${{REFRESH_LOCAL_PROOF:-1}}"',
@@ -2776,7 +2787,7 @@ def handoff_generator_summary() -> str:
         "Worker A real-model setup requires a named Cloudflare hostname, not a trycloudflare.com quick tunnel",
         "Worker A real-model setup requires non-empty model IDs in ALLOWED_MODELS",
         "Worker A real-model setup requires ALLOWED_MODELS to list at least two distinct real model IDs",
-        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro",
+        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash",
         "Worker A real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4",
         "GEMINI_API_KEY_FOR_INSTALL=",
         "XAI_API_KEY_FOR_INSTALL=",
@@ -2825,7 +2836,7 @@ def handoff_generator_summary() -> str:
         'ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL="${{ALLOW_DISABLE_DIFFERENT_REGEN_MODEL_FOR_REHEARSAL:-0}}"',
         'SKIP_STRICT_REPORT_VALIDATION="${{SKIP_STRICT_REPORT_VALIDATION:-0}}"',
         'ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL="${{ALLOW_SKIP_STRICT_REPORT_VALIDATION_FOR_REHEARSAL:-0}}"',
-        'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5,gemini-2.5-pro}}}}"',
+        'WORKER_REQUIRED_CAPABILITIES="${{WORKER_REQUIRED_CAPABILITIES:-${{ALLOWED_MODELS:-codex-gpt-5.5,gemini-2.5-flash}}}}"',
         'ALLOW_QUICK_TUNNEL_ACCEPTANCE="${{ALLOW_QUICK_TUNNEL_ACCEPTANCE:-0}}"',
         'ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR="${{ALLOW_NONSTANDARD_ACCEPTANCE_REPORT_DIR:-0}}"',
         'REPORT_PYTHON="${{REPORT_PYTHON:-python3}}"',
@@ -2900,7 +2911,7 @@ def handoff_generator_summary() -> str:
             register_section = register_section.split("def worker_real_models_script(", 1)[0]
     register_named_guard_index = register_section.find("Worker B registration requires a named Cloudflare hostname")
     register_gemini_guard_index = register_section.find(
-        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     register_xai_guard_index = register_section.find(
         "Worker B registration requires XAI_API_KEY when ALLOWED_MODELS includes grok-4"
@@ -2970,7 +2981,7 @@ def handoff_generator_summary() -> str:
     real_models_url_guard_index = real_models_section.find("Worker B real-model setup requires a named Cloudflare hostname")
     real_models_capability_guard_index = real_models_section.find("Worker B real-model setup requires ALLOWED_MODELS")
     real_models_gemini_guard_index = real_models_section.find(
-        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     real_models_xai_guard_index = real_models_section.find(
         "Worker B real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4"
@@ -3135,7 +3146,7 @@ def handoff_generator_summary() -> str:
     )
     worker_a_capability_guard_index = worker_a_section.find("Worker A real-model setup requires ALLOWED_MODELS")
     worker_a_gemini_guard_index = worker_a_section.find(
-        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     worker_a_xai_guard_index = worker_a_section.find(
         "Worker A real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4"
@@ -4363,7 +4374,7 @@ def bundle_worker_b_register_summary(path: Path, nested_member: str | None = Non
     missing = sorted(marker for marker in WORKER_B_REGISTER_SCRIPT_MARKERS if marker not in script)
     named_guard_index = script.find("Worker B registration requires a named Cloudflare hostname")
     gemini_guard_index = script.find(
-        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker B registration requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     xai_guard_index = script.find("Worker B registration requires XAI_API_KEY when ALLOWED_MODELS includes grok-4")
     token_notice_index = script.find(
@@ -4440,7 +4451,7 @@ def bundle_worker_b_real_models_summary(path: Path, nested_member: str | None = 
     url_guard_index = script.find("Worker B real-model setup requires a named Cloudflare hostname")
     capability_guard_index = script.find("Worker B real-model setup requires ALLOWED_MODELS")
     gemini_guard_index = script.find(
-        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker B real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     xai_guard_index = script.find("Worker B real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4")
     token_notice_index = script.find(
@@ -5176,7 +5187,7 @@ def handoff_worker_a_real_models_summary(path: Path = HANDOFF_BUNDLE) -> str:
     )
     capability_guard_index = script.find("Worker A real-model setup requires ALLOWED_MODELS")
     gemini_key_index = script.find(
-        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-pro"
+        "Worker A real-model setup requires GEMINI_API_KEY when ALLOWED_MODELS includes gemini-2.5-flash"
     )
     xai_key_index = script.find("Worker A real-model setup requires XAI_API_KEY when ALLOWED_MODELS includes grok-4")
     named_tunnel_preflight_guard_index = script.find(

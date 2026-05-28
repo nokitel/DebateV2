@@ -11,7 +11,7 @@ from typing import Any
 
 DEFAULT_DB = Path("~/.dialectical/db.sqlite3").expanduser()
 DEFAULT_REPORT = Path("/private/tmp/dialectical-local-single-machine-config.json")
-DEFAULT_CODEX_MODEL = "codex-gpt-5"
+DEFAULT_CODEX_MODEL = "codex-gpt-5.5"
 DEFAULT_LMSTUDIO_MODEL = "google_gemma-4-e4b-it"
 
 

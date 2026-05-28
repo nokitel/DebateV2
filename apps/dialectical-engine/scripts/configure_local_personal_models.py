@@ -27,9 +27,10 @@ DEFAULT_WORKER_CONFIG = Path("~/.dialectical-worker/config.toml").expanduser()
 DEFAULT_REPORT = Path("/private/tmp/dialectical-local-personal-models.json")
 DEFAULT_LM_STUDIO_URL = "http://127.0.0.1:1234"
 
-CODEX_MODEL = "codex-gpt-5"
-CLAUDE_MODEL = "claude-sonnet-4.5"
-GEMINI_MODEL = "gemini-2.5-pro"
+CODEX_MODEL = "codex-gpt-5.5"
+CODEX_CLI_MODEL = "gpt-5.5"
+CLAUDE_MODEL = "claude-sonnet-4-6"
+GEMINI_MODEL = "gemini-2.5-flash"
 LM_STUDIO_MODEL = "google_gemma-4-e4b-it"
 LM_STUDIO_CAPABILITY = f"lmstudio:{LM_STUDIO_MODEL}"
 
@@ -99,12 +100,24 @@ def contains_ok(result: dict[str, Any]) -> bool:
 def probe_cli_models() -> dict[str, dict[str, Any]]:
     probes = {
         CODEX_MODEL: run(
-            ["codex", "exec", "--skip-git-repo-check", "--sandbox", "read-only", "Reply with exactly: ok"],
+            [
+                "codex",
+                "exec",
+                "--skip-git-repo-check",
+                "--sandbox",
+                "read-only",
+                "--model",
+                CODEX_CLI_MODEL,
+                "Reply with exactly: ok",
+            ],
             timeout=60,
         ),
-        CLAUDE_MODEL: run(["claude", "-p", "--max-turns", "1", "Reply with exactly: ok"], timeout=30),
+        CLAUDE_MODEL: run(
+            ["claude", "-p", "--model", CLAUDE_MODEL, "--max-turns", "1", "Reply with exactly: ok"],
+            timeout=30,
+        ),
         GEMINI_MODEL: run(
-            ["gemini", "-p", "Reply with exactly: ok"],
+            ["gemini", "-m", GEMINI_MODEL, "-p", "Reply with exactly: ok"],
             timeout=30,
             env={"GOOGLE_GENAI_USE_GCA": "true"},
         ),
