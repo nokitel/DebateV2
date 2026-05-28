@@ -5,7 +5,8 @@ Goal: use personal subscriptions locally without adding paid API keys unless you
 ## Current Status
 
 - Codex CLI works non-interactively.
-- Claude Code is installed, but the current non-interactive probe returns `401 Invalid authentication credentials`.
+- Claude Code is installed, but `claude auth status` reports `loggedIn: false`
+  and the current non-interactive probe returns `401 Invalid authentication credentials`.
 - Gemini CLI is installed and configured to prefer Google-account OAuth
   (`oauth-personal`), but the browser OAuth flow still needs to be completed
   once from a normal Terminal.
@@ -31,8 +32,12 @@ Or run this interactively in a terminal:
 
 ```sh
 claude auth status
-claude auth login
+claude auth login --claudeai
 ```
+
+`--claudeai` explicitly uses your Claude subscription login. Do not use
+`claude auth login --console` unless you intentionally want Anthropic Console
+API billing.
 
 Then verify:
 

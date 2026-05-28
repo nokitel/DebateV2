@@ -58,7 +58,7 @@ EOF
 if need claude; then
     if confirm "Run Claude Code login now?"; then
         claude auth status || true
-        claude auth login || true
+        claude auth login --claudeai || true
         claude -p --max-turns 1 "Reply with exactly: ok" || true
     fi
 else

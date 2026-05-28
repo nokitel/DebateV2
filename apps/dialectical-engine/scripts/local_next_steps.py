@@ -181,7 +181,10 @@ def main() -> int:
 
     todo: list[str] = []
     if CLAUDE_MODEL not in capabilities and not probe_ok(auth_cli, "claude"):
-        todo.append(f"Claude: {auth_detail(auth_cli, 'claude')}; run `claude auth login`, then `make refresh-local-models`")
+        todo.append(
+            f"Claude: {auth_detail(auth_cli, 'claude')}; run `claude auth login --claudeai`, "
+            "then `make refresh-local-models`"
+        )
     if GEMINI_MODEL not in capabilities and not probe_ok(auth_cli, "gemini"):
         gemini_text = probe_text(auth_cli, "gemini")
         if gemini_google_auth_configured or "timed out" in gemini_text or gemini_oauth_configured():
