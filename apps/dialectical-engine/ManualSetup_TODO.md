@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T01:26:25.784092+00:00`
+Generated at: `2026-05-28T01:35:14.381924+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
@@ -57,6 +57,7 @@ Manual order:
 7. Run `cloudflared tunnel login` if `make interactive-manual-setup` did not already complete it.
 8. Run `make resume-dezbatere-hosting`.
 9. After manual HTTPS verification, run `INSTALL_SERVICE=1 STOP_QUICK_TUNNEL=1 make resume-dezbatere-hosting`.
+10. Run `make final-single-machine-check` for the strict completion gate.
 
 ## Reference Files
 

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: dev dev-smoke test acceptance configure-local-single-machine configure-local-personal-models configure-gemini-google-auth refresh-local-models setup-status interactive-manual-setup source-snapshot local-status local-next-steps manual-setup-checklist hosting-status prepare-romarg-nameservers lmstudio-worker lmstudio-worker-once install-lmstudio-worker stop-lmstudio-worker probe-lmstudio-job probe-lmstudio-worker-job probe-model-auth local-cluster-check local-single-machine-check local-single-machine-acceptance wait-dezbatere-dns resume-dezbatere-hosting deploy-preflight status install-status-helper handoff-bundles final-production-check production-readiness production-acceptance-sequence install-services setup-named-tunnel setup-dezbatere-tunnel install-tunnel stop-quick-tunnel install-worker register-worker update-worker-config verify-worker-status verify-worker-visible bootstrap web-install web-build restart-web rebuild-web-service
+.PHONY: dev dev-smoke test acceptance configure-local-single-machine configure-local-personal-models configure-gemini-google-auth refresh-local-models setup-status interactive-manual-setup source-snapshot local-status local-next-steps manual-setup-checklist hosting-status prepare-romarg-nameservers final-single-machine-check lmstudio-worker lmstudio-worker-once install-lmstudio-worker stop-lmstudio-worker probe-lmstudio-job probe-lmstudio-worker-job probe-model-auth local-cluster-check local-single-machine-check local-single-machine-acceptance wait-dezbatere-dns resume-dezbatere-hosting deploy-preflight status install-status-helper handoff-bundles final-production-check production-readiness production-acceptance-sequence install-services setup-named-tunnel setup-dezbatere-tunnel install-tunnel stop-quick-tunnel install-worker register-worker update-worker-config verify-worker-status verify-worker-visible bootstrap web-install web-build restart-web rebuild-web-service
 
 PYTHON ?= $(shell for py in "$(CURDIR)/.venv/bin/python" "$(CURDIR)/.venv313/bin/python" "$(CURDIR)/.venv312/bin/python" python3.13 python3.12 python3; do if [ -x "$$py" ]; then resolved="$$py"; elif command -v "$$py" >/dev/null 2>&1; then resolved="$$(command -v "$$py")"; else continue; fi; if "$$resolved" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then printf '%s\n' "$$resolved"; exit; fi; done; if [ -x "$(CURDIR)/.venv/bin/python" ]; then printf '%s\n' "$(CURDIR)/.venv/bin/python"; elif command -v python3 >/dev/null 2>&1; then command -v python3; fi)
 PNPM ?= $(shell command -v pnpm)
@@ -17,6 +17,8 @@ SOURCE_SNAPSHOT ?= /private/tmp/dialectical-engine-source.tgz
 SOURCE_SNAPSHOT_REPORT ?= /private/tmp/dialectical-engine-source-snapshot.json
 CLOUDFLARE_NAMESERVERS ?=
 ROMARG_NAMESERVER_CARD ?= Romarg_Nameservers_To_Set.md
+FINAL_SINGLE_MACHINE_REPORT ?= /private/tmp/dialectical-final-single-machine-check.json
+FINAL_SINGLE_MACHINE_FLAGS ?=
 RESTART_WORKER ?= 1
 COORDINATOR_URL ?= http://localhost:8000
 WEB_URL ?=
@@ -138,6 +140,9 @@ hosting-status:
 
 prepare-romarg-nameservers:
 	DYLD_LIBRARY_PATH="$(PYTHON_DYLD_LIBRARY_PATH)" "$(LOCAL_CHECK_PYTHON)" scripts/prepare_romarg_nameservers.py $(if $(strip $(CLOUDFLARE_NAMESERVERS)),--nameservers "$(CLOUDFLARE_NAMESERVERS)",) --output "$(ROMARG_NAMESERVER_CARD)"
+
+final-single-machine-check: setup-status
+	DYLD_LIBRARY_PATH="$(PYTHON_DYLD_LIBRARY_PATH)" "$(LOCAL_CHECK_PYTHON)" scripts/final_single_machine_check.py --report-path "$(FINAL_SINGLE_MACHINE_REPORT)" $(FINAL_SINGLE_MACHINE_FLAGS)
 
 wait-dezbatere-dns:
 	DYLD_LIBRARY_PATH="$(PYTHON_DYLD_LIBRARY_PATH)" "$(LOCAL_CHECK_PYTHON)" scripts/wait_dezbatere_delegation.py --domain "$(DEZBATERE_DOMAIN)" --timeout-seconds "$(WAIT_DEZBATERE_DNS_TIMEOUT)" --interval-seconds "$(WAIT_DEZBATERE_DNS_INTERVAL)"

@@ -152,6 +152,7 @@ curl https://dezbatere.ro/api/backends/status
 ```sh
 make local-status
 make local-single-machine-acceptance
+make final-single-machine-check
 DYLD_LIBRARY_PATH=/opt/homebrew/opt/expat/lib .venv313/bin/python scripts/status_report.py
 ```
 
@@ -166,6 +167,10 @@ Expected for the simplified phase:
 - `google_gemma-4-e4b-it` loaded,
 - local routing includes `lmstudio:google_gemma-4-e4b-it`,
 - public URL should eventually come from named tunnel, not quick tunnel.
+
+`make final-single-machine-check` is the strict completion gate. It fails until
+the named `dezbatere.ro` endpoint, Cloudflare Tunnel service, local worker,
+Codex, LM Studio, Claude, and Gemini Google-account auth checks all pass.
 
 ## Current Blockers
 

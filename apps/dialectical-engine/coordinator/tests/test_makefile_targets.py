@@ -66,6 +66,15 @@ def test_makefile_exposes_romarg_nameserver_card_target() -> None:
     assert 'scripts/prepare_romarg_nameservers.py $(if $(strip $(CLOUDFLARE_NAMESERVERS)),--nameservers "$(CLOUDFLARE_NAMESERVERS)",) --output "$(ROMARG_NAMESERVER_CARD)"' in makefile
 
 
+def test_makefile_exposes_final_single_machine_check_target() -> None:
+    makefile = (ROOT / "Makefile").read_text()
+
+    assert "FINAL_SINGLE_MACHINE_REPORT ?= /private/tmp/dialectical-final-single-machine-check.json" in makefile
+    assert "FINAL_SINGLE_MACHINE_FLAGS ?=" in makefile
+    assert "final-single-machine-check: setup-status" in makefile
+    assert 'scripts/final_single_machine_check.py --report-path "$(FINAL_SINGLE_MACHINE_REPORT)" $(FINAL_SINGLE_MACHINE_FLAGS)' in makefile
+
+
 def test_dezbatere_tunnel_helpers_require_full_cloudflare_delegation() -> None:
     for script_name in ("resume_dezbatere_hosting.sh", "setup_dezbatere_tunnel.sh"):
         script = (ROOT / "scripts" / script_name).read_text()

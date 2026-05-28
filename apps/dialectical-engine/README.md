@@ -114,6 +114,9 @@ non-interactive automation. After Claude/Gemini login, accept its local model
 routing refresh so the worker advertises newly usable personal models. After
 Cloudflare login and DNS delegation are ready, accept its named tunnel setup
 prompt to continue into `make resume-dezbatere-hosting`.
+After those manual gates are done, run `make final-single-machine-check`; it
+fails until the named `dezbatere.ro` endpoint, local worker, Codex, LM Studio,
+Claude, and Gemini Google-account auth checks all pass.
 The remaining manual gates are also tracked in
 `https://github.com/DebateAIRO/debateairo/issues/5`.
 Because this local `dialectical-engine` directory is not currently a git

@@ -241,6 +241,7 @@ def main() -> int:
         "7. Run `cloudflared tunnel login` if `make interactive-manual-setup` did not already complete it.",
         "8. Run `make resume-dezbatere-hosting`.",
         "9. After manual HTTPS verification, run `INSTALL_SERVICE=1 STOP_QUICK_TUNNEL=1 make resume-dezbatere-hosting`.",
+        "10. Run `make final-single-machine-check` for the strict completion gate.",
         "",
         "## Reference Files",
         "",

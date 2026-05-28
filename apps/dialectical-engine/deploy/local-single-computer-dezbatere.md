@@ -81,6 +81,12 @@ Check the simplified local state:
 make local-status
 ```
 
+Run the strict final gate after the account, DNS, and named tunnel steps:
+
+```sh
+make final-single-machine-check
+```
+
 Print only the concise current status and next manual actions without
 refreshing the readiness report:
 
