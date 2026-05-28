@@ -5,6 +5,10 @@ The skeleton is the source of truth that gets copied into target projects via
 `bootstrap/init.sh`. Your changes here propagate to all future bootstrapped
 projects, and via `bootstrap/upgrade.sh` to existing ones.
 
+Exception: `apps/dialectical-engine/` is an imported application, not part of
+the AI Harness skeleton. When working under that path, follow its app-level
+documentation and `apps/dialectical-engine/AGENTS.md`.
+
 ## Invariants
 
 - Never edit anything inside `skeleton/` without considering downstream impact
