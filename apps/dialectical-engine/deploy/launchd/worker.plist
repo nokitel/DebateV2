@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.dialectical.worker</string>
+  <key>WorkingDirectory</key>
+  <string>__ROOT__/worker</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+    <key>DYLD_LIBRARY_PATH</key>
+    <string>__PYTHON_DYLD_LIBRARY_PATH__</string>
+__ADAPTER_API_ENV__
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PYTHON__</string>
+    <string>-m</string>
+    <string>app.main</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/dialectical-worker.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/dialectical-worker.err.log</string>
+</dict>
+</plist>

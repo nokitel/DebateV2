@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.dialectical.cloudflared</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__CLOUDFLARED__</string>
+    <string>tunnel</string>
+    <string>--config</string>
+    <string>__CONFIG__</string>
+    <string>run</string>
+    <string>__TUNNEL__</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/dialectical-cloudflared.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/dialectical-cloudflared.err.log</string>
+</dict>
+</plist>

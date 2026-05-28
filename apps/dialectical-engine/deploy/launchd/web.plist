@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.dialectical.web</string>
+  <key>WorkingDirectory</key>
+  <string>__ROOT__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PYTHON__</string>
+    <string>__ROOT__/scripts/web_proxy.py</string>
+    <string>--root</string>
+    <string>__ROOT__</string>
+    <string>--pnpm</string>
+    <string>__PNPM__</string>
+    <string>--path</string>
+    <string>__PATH__</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/dialectical-web.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/dialectical-web.err.log</string>
+</dict>
+</plist>
