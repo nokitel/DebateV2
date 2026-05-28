@@ -178,7 +178,10 @@ def next_action(
     if not local_web.get("ok"):
         return "Local API works, but the local web UI/static assets failed; run `make rebuild-web-service`, then `make hosting-status`."
     if not dns.get("delegated_to_cloudflare"):
-        return "Add dezbatere.ro to Cloudflare, replace Romarg nameservers, then run `make wait-dezbatere-dns`."
+        return (
+            "Add dezbatere.ro to Cloudflare, run `make prepare-romarg-nameservers` with the assigned "
+            "nameservers, update Romarg, then run `make wait-dezbatere-dns`."
+        )
     if not cf.get("cert_exists"):
         return "Run `cloudflared tunnel login`, then rerun `make hosting-status`."
     if not cf.get("named_tunnel_ready"):

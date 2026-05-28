@@ -193,8 +193,10 @@ def main() -> int:
                 f"Gemini: {auth_detail(auth_cli, 'gemini')}; run `make configure-gemini-google-auth`, then `gemini` and finish Login with Google"
             )
     if dns.get("delegated_to_romarg"):
-        todo.append("Domain: add dezbatere.ro to Cloudflare, then change Romarg nameservers to Cloudflare")
-        todo.append("After changing nameservers: run `make wait-dezbatere-dns`")
+        todo.append(
+            "Domain: add dezbatere.ro to Cloudflare, then run `make prepare-romarg-nameservers` with the assigned nameservers"
+        )
+        todo.append("Romarg: use `Romarg_Nameservers_To_Set.md`, then run `make wait-dezbatere-dns`")
     elif dns.get("delegated_to_cloudflare") and not cloudflared.get("cert_exists"):
         todo.append("Cloudflare: run `cloudflared tunnel login`")
     if dns.get("delegated_to_cloudflare") and not cloudflared.get("named_tunnel_ready"):
@@ -208,6 +210,7 @@ def main() -> int:
         "make probe-model-auth",
     ]
     if not cloudflared.get("named_tunnel_ready"):
+        verify.append("make prepare-romarg-nameservers after Cloudflare assigns nameservers")
         verify.append("make wait-dezbatere-dns after Romarg nameserver change")
     else:
         verify.append("curl https://dezbatere.ro/api/backends/status")

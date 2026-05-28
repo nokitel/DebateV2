@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T01:07:14.572450+00:00`
+Generated at: `2026-05-28T01:13:35.497065+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
@@ -44,7 +44,7 @@ make local-status
 - [ ] `https://dezbatere.ro/` serves the web UI and static assets.
 
 Current registry nameservers: `ns1.romarg.com., ns2.romarg.com., ns3.romarg.com., ns4.romarg.com.`
-Hosting next action: Add dezbatere.ro to Cloudflare, replace Romarg nameservers, then run `make wait-dezbatere-dns`.
+Hosting next action: Add dezbatere.ro to Cloudflare, run `make prepare-romarg-nameservers` with the assigned nameservers, update Romarg, then run `make wait-dezbatere-dns`.
 
 Manual order:
 

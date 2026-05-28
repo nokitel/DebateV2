@@ -44,9 +44,12 @@ def test_makefile_exposes_named_tunnel_setup_target() -> None:
 
 def test_makefile_exposes_interactive_manual_setup_target() -> None:
     makefile = (ROOT / "Makefile").read_text()
+    helper = (ROOT / "scripts" / "interactive_manual_setup.sh").read_text()
 
     assert "interactive-manual-setup:" in makefile
     assert "./scripts/interactive_manual_setup.sh" in makefile
+    assert "Create Romarg nameserver paste card" in helper
+    assert "make prepare-romarg-nameservers" in helper
 
 
 def test_makefile_exposes_romarg_nameserver_card_target() -> None:

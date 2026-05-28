@@ -56,3 +56,19 @@ def test_next_action_reports_named_web_failure_after_api_ready() -> None:
 
     assert "Named tunnel API works" in action
     assert "https://dezbatere.ro/" in action
+
+
+def test_next_action_points_to_romarg_nameserver_helper_before_delegation() -> None:
+    module = load_hosting_status_module()
+
+    action = module.next_action(
+        {"ok": True},
+        {"ok": True},
+        {"delegated_to_cloudflare": False},
+        {"cert_exists": False, "named_tunnel_ready": False, "service_loaded": False},
+        {"ok": False},
+        {"ok": False},
+    )
+
+    assert "make prepare-romarg-nameservers" in action
+    assert "make wait-dezbatere-dns" in action

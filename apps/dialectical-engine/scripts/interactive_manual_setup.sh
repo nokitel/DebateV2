@@ -75,6 +75,16 @@ else
     echo "Skipping Gemini login because the gemini command is not installed."
 fi
 
+if confirm "Create Romarg nameserver paste card from Cloudflare-assigned nameservers now?"; then
+    printf "Paste the two Cloudflare nameservers: "
+    IFS= read -r cloudflare_nameservers
+    if [ -n "$cloudflare_nameservers" ]; then
+        CLOUDFLARE_NAMESERVERS="$cloudflare_nameservers" make prepare-romarg-nameservers || true
+    else
+        echo "No nameservers entered; leaving Romarg_Nameservers_To_Set.md as-is."
+    fi
+fi
+
 if need cloudflared; then
     if [ -r "$CLOUDFLARED_DIR/cert.pem" ]; then
         echo "Cloudflare login already has $CLOUDFLARED_DIR/cert.pem."

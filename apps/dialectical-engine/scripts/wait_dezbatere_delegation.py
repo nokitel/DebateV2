@@ -67,7 +67,10 @@ def main() -> int:
             if stdout and not nameservers:
                 print(stdout)
         if any(".romarg.com." in ns for ns in nameservers):
-            print("Still delegated to Romarg. Finish Romarg_TODO.md after Cloudflare assigns nameservers.")
+            print(
+                "Still delegated to Romarg. After Cloudflare assigns nameservers, run "
+                "`make prepare-romarg-nameservers`, then finish Romarg_TODO.md."
+            )
         elif nameservers:
             print("Delegated to non-Cloudflare nameservers. Check the names entered at Romarg.")
         else:
