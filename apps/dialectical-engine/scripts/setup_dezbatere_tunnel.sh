@@ -27,6 +27,19 @@ need python3
 need dig
 need curl
 
+is_cloudflare_delegation() {
+    ns="$1"
+    [ -n "$ns" ] || return 1
+    printf '%s\n' "$ns" | awk '
+        NF {
+            total += 1
+            lower = tolower($0)
+            if (lower ~ /\.ns\.cloudflare\.com\.$/) cloudflare += 1
+        }
+        END { exit !(total > 0 && cloudflare == total) }
+    '
+}
+
 mkdir -p "$CLOUDFLARED_DIR"
 
 if [ "$SKIP_SERVICE_PREFLIGHT" != "1" ] && [ "$SKIP_SERVICE_PREFLIGHT" != "true" ] && [ "$SKIP_SERVICE_PREFLIGHT" != "yes" ]; then
@@ -42,20 +55,19 @@ fi
 
 if [ "$SKIP_DNS_PREFLIGHT" != "1" ] && [ "$SKIP_DNS_PREFLIGHT" != "true" ] && [ "$SKIP_DNS_PREFLIGHT" != "yes" ]; then
     registry_ns="$(dig @primary.rotld.ro "$DOMAIN" NS 2>/dev/null | awk 'toupper($4)=="NS" {print $5}' | sort -u || true)"
-    if printf '%s\n' "$registry_ns" | grep -qi '\.romarg\.com\.$'; then
-        echo "$DOMAIN is still delegated to Romarg nameservers:" >&2
-        printf '%s\n' "$registry_ns" >&2
-        echo "Add $DOMAIN to Cloudflare, then change nameservers in Romarg before creating the named tunnel DNS routes." >&2
-        echo "See Cloudfare_TODO.md and Romarg_TODO.md." >&2
-        exit 2
-    fi
-    if ! printf '%s\n' "$registry_ns" | grep -qi '\.ns\.cloudflare\.com\.$'; then
+    if ! is_cloudflare_delegation "$registry_ns"; then
         echo "$DOMAIN is not delegated to Cloudflare yet." >&2
         echo "Current registry nameservers:" >&2
         if [ -n "$registry_ns" ]; then
             printf '%s\n' "$registry_ns" >&2
         else
             echo "  <none found>" >&2
+        fi
+        if printf '%s\n' "$registry_ns" | grep -qi '\.romarg\.com\.$'; then
+            echo "Add $DOMAIN to Cloudflare, then replace all Romarg nameservers with only the assigned Cloudflare nameservers." >&2
+            echo "See Cloudfare_TODO.md and Romarg_TODO.md." >&2
+        else
+            echo "Check the nameservers entered at Romarg; every nameserver must end with .ns.cloudflare.com." >&2
         fi
         echo "Set SKIP_DNS_PREFLIGHT=1 only if you intentionally want to create the tunnel before DNS delegation changes." >&2
         exit 2

@@ -49,6 +49,18 @@ def test_makefile_exposes_interactive_manual_setup_target() -> None:
     assert "./scripts/interactive_manual_setup.sh" in makefile
 
 
+def test_dezbatere_tunnel_helpers_require_full_cloudflare_delegation() -> None:
+    for script_name in ("resume_dezbatere_hosting.sh", "setup_dezbatere_tunnel.sh"):
+        script = (ROOT / "scripts" / script_name).read_text()
+
+        assert "is_cloudflare_delegation()" in script
+        assert "cloudflare == total" in script
+        assert (
+            "every nameserver must end with .ns.cloudflare.com" in script
+            or "Replace all Romarg nameservers" in script
+        )
+
+
 def test_makefile_exposes_source_snapshot_target() -> None:
     makefile = (ROOT / "Makefile").read_text()
 

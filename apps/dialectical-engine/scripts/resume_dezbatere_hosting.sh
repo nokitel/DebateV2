@@ -18,6 +18,19 @@ need dig
 need curl
 need "$CLOUDFLARED"
 
+is_cloudflare_delegation() {
+    ns="$1"
+    [ -n "$ns" ] || return 1
+    printf '%s\n' "$ns" | awk '
+        NF {
+            total += 1
+            lower = tolower($0)
+            if (lower ~ /\.ns\.cloudflare\.com\.$/) cloudflare += 1
+        }
+        END { exit !(total > 0 && cloudflare == total) }
+    '
+}
+
 if ! curl -fsS "$STATUS_URL" >/dev/null; then
     echo "Local web app is not ready for tunnel setup." >&2
     echo "Failed status URL: $STATUS_URL" >&2
@@ -30,7 +43,7 @@ fi
 
 registry_ns="$(dig @primary.rotld.ro "$DOMAIN" NS 2>/dev/null | awk 'toupper($4)=="NS" {print $5}' | sort -u || true)"
 
-if ! printf '%s\n' "$registry_ns" | grep -qi '\.ns\.cloudflare\.com\.$'; then
+if ! is_cloudflare_delegation "$registry_ns"; then
     echo "$DOMAIN is not delegated to Cloudflare yet." >&2
     echo "Current ROTLD nameservers:" >&2
     if [ -n "$registry_ns" ]; then
@@ -40,7 +53,7 @@ if ! printf '%s\n' "$registry_ns" | grep -qi '\.ns\.cloudflare\.com\.$'; then
     fi
     echo "Next:" >&2
     echo "  1. Add $DOMAIN to Cloudflare and copy the assigned nameservers." >&2
-    echo "  2. Replace the nameservers in Romarg." >&2
+    echo "  2. Replace all Romarg nameservers with only the assigned Cloudflare nameservers." >&2
     echo "  3. Run: make wait-dezbatere-dns" >&2
     exit 2
 fi

@@ -23,9 +23,10 @@ From the page shown in your screenshot:
 1. Open the `Dezbatere.ro` domain details page in Romarg.
 2. In `Unelte disponibile`, click `Modificare nameservere`.
 3. Replace the current Romarg nameservers with the two Cloudflare nameservers shown in Cloudflare.
-4. Leave extra nameserver fields blank unless Cloudflare gives more than two.
-5. Save/confirm the change.
-6. If Romarg asks for confirmation by email or domain authorization, complete that confirmation.
+4. Remove every Romarg nameserver from the form. The final saved list should contain only Cloudflare nameservers.
+5. Leave extra nameserver fields blank unless Cloudflare gives more than two.
+6. Save/confirm the change.
+7. If Romarg asks for confirmation by email or domain authorization, complete that confirmation.
 
 ## Expected Result
 

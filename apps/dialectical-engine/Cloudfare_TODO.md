@@ -15,7 +15,7 @@ Goal: use Cloudflare DNS plus Cloudflare Tunnel so `https://dezbatere.ro` and `h
    - If you use email on this domain, make sure MX/TXT/SPF/DKIM/DMARC records are present before changing nameservers.
    - If there is no hosting/email, it is okay if the DNS zone is mostly empty.
 6. Cloudflare will show two assigned nameservers. Copy those exact two names.
-7. Go to `Romarg_TODO.md` and change the Romarg nameservers to those two Cloudflare nameservers.
+7. Go to `Romarg_TODO.md` and change the Romarg nameservers to only those two Cloudflare nameservers. Do not leave any Romarg nameserver in an extra field.
 
 ## 2. Wait For Cloudflare Activation
 
@@ -86,9 +86,10 @@ This helper will:
 - write `~/Library/LaunchAgents/com.dialectical.cloudflared.plist`.
 
 The helper now refuses to create named DNS routes while `dezbatere.ro` still
-delegates to Romarg. Use `SKIP_DNS_PREFLIGHT=1 make setup-dezbatere-tunnel`
-only if you intentionally want to prepare the tunnel before the nameserver
-change is visible. The lower-level setup script also checks
+delegates to Romarg or to a mixed nameserver set. Use
+`SKIP_DNS_PREFLIGHT=1 make setup-dezbatere-tunnel` only if you intentionally
+want to prepare the tunnel before the nameserver change is visible. The
+lower-level setup script also checks
 `http://127.0.0.1:3000/api/backends/status`; use `SKIP_SERVICE_PREFLIGHT=1`
 only if you intentionally want to write tunnel config before the app is
 reachable.
