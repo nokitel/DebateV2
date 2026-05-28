@@ -104,6 +104,10 @@ Cloudflare/Romarg hosting status, `ManualSetup_TODO.md`, and the concise next
 actions. The requested Romarg and Cloudflare manual checklists are
 `Romarg_TODO.md` and `Cloudfare_TODO.md`; `Cloudflare_TODO.md` is a spelling
 alias that points back to the requested filename.
+After Cloudflare assigns the two nameservers, run
+`CLOUDFLARE_NAMESERVERS="first.ns.cloudflare.com second.ns.cloudflare.com" make prepare-romarg-nameservers`
+with the real values to write `Romarg_Nameservers_To_Set.md` for the Romarg
+form.
 Run `make interactive-manual-setup` from a normal Terminal to start the Claude,
 Gemini Google-account, and Cloudflare browser login flows; it refuses to run in
 non-interactive automation.

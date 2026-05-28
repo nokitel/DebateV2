@@ -49,6 +49,16 @@ def test_makefile_exposes_interactive_manual_setup_target() -> None:
     assert "./scripts/interactive_manual_setup.sh" in makefile
 
 
+def test_makefile_exposes_romarg_nameserver_card_target() -> None:
+    makefile = (ROOT / "Makefile").read_text()
+
+    assert "LOCAL_CHECK_PYTHON ?= $(PYTHON)" in makefile
+    assert "CLOUDFLARE_NAMESERVERS ?=" in makefile
+    assert "ROMARG_NAMESERVER_CARD ?= Romarg_Nameservers_To_Set.md" in makefile
+    assert "prepare-romarg-nameservers:" in makefile
+    assert 'scripts/prepare_romarg_nameservers.py $(if $(strip $(CLOUDFLARE_NAMESERVERS)),--nameservers "$(CLOUDFLARE_NAMESERVERS)",) --output "$(ROMARG_NAMESERVER_CARD)"' in makefile
+
+
 def test_dezbatere_tunnel_helpers_require_full_cloudflare_delegation() -> None:
     for script_name in ("resume_dezbatere_hosting.sh", "setup_dezbatere_tunnel.sh"):
         script = (ROOT / "scripts" / script_name).read_text()

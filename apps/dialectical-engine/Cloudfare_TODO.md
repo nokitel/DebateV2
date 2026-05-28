@@ -17,6 +17,15 @@ Goal: use Cloudflare DNS plus Cloudflare Tunnel so `https://dezbatere.ro` and `h
 6. Cloudflare will show two assigned nameservers. Copy those exact two names.
 7. Go to `Romarg_TODO.md` and change the Romarg nameservers to only those two Cloudflare nameservers. Do not leave any Romarg nameserver in an extra field.
 
+Optional local helper after Cloudflare shows the two nameservers:
+
+```sh
+CLOUDFLARE_NAMESERVERS="first.ns.cloudflare.com second.ns.cloudflare.com" make prepare-romarg-nameservers
+```
+
+Replace the examples with the exact names Cloudflare shows. This writes
+`Romarg_Nameservers_To_Set.md`, a short paste card for the Romarg form.
+
 ## 2. Wait For Cloudflare Activation
 
 In Cloudflare, wait until the zone status for `dezbatere.ro` becomes active.

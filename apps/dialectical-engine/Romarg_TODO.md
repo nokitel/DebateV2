@@ -15,6 +15,10 @@ Do not copy personal contact details from the Romarg page into project files or 
   - TXT records for verification,
   - any subdomains.
 - If there are records you care about, add them in Cloudflare before changing Romarg nameservers.
+- Optional: after Cloudflare shows the two nameservers, run
+  `CLOUDFLARE_NAMESERVERS="first.ns.cloudflare.com second.ns.cloudflare.com" make prepare-romarg-nameservers`
+  with the real values. Then use `Romarg_Nameservers_To_Set.md` as a paste
+  card for the form.
 
 ## Change Nameservers In Romarg
 

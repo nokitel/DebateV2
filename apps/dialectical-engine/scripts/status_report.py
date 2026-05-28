@@ -3226,7 +3226,7 @@ def handoff_generator_summary() -> str:
 
 def makefile_deploy_targets_summary() -> str:
     markers = [
-        ".PHONY: dev dev-smoke test acceptance configure-local-single-machine configure-local-personal-models configure-gemini-google-auth refresh-local-models setup-status interactive-manual-setup source-snapshot local-status local-next-steps manual-setup-checklist hosting-status lmstudio-worker lmstudio-worker-once install-lmstudio-worker stop-lmstudio-worker probe-lmstudio-job probe-lmstudio-worker-job probe-model-auth local-cluster-check local-single-machine-check local-single-machine-acceptance wait-dezbatere-dns resume-dezbatere-hosting deploy-preflight status install-status-helper handoff-bundles final-production-check production-readiness production-acceptance-sequence install-services setup-named-tunnel setup-dezbatere-tunnel install-tunnel stop-quick-tunnel install-worker register-worker update-worker-config verify-worker-status verify-worker-visible bootstrap web-install web-build restart-web rebuild-web-service",
+        ".PHONY: dev dev-smoke test acceptance configure-local-single-machine configure-local-personal-models configure-gemini-google-auth refresh-local-models setup-status interactive-manual-setup source-snapshot local-status local-next-steps manual-setup-checklist hosting-status prepare-romarg-nameservers lmstudio-worker lmstudio-worker-once install-lmstudio-worker stop-lmstudio-worker probe-lmstudio-job probe-lmstudio-worker-job probe-model-auth local-cluster-check local-single-machine-check local-single-machine-acceptance wait-dezbatere-dns resume-dezbatere-hosting deploy-preflight status install-status-helper handoff-bundles final-production-check production-readiness production-acceptance-sequence install-services setup-named-tunnel setup-dezbatere-tunnel install-tunnel stop-quick-tunnel install-worker register-worker update-worker-config verify-worker-status verify-worker-visible bootstrap web-install web-build restart-web rebuild-web-service",
         "ACCEPTANCE_REQUIRE_NAMED_HTTPS_ARG = ",
         "ACCEPTANCE_PHASE ?=",
         "ACCEPTANCE_PHASE_ARG = ",
@@ -3261,6 +3261,9 @@ def makefile_deploy_targets_summary() -> str:
         "HOSTING_STATUS_REPORT ?= /private/tmp/dialectical-hosting-status.json",
         "SOURCE_SNAPSHOT ?= /private/tmp/dialectical-engine-source.tgz",
         "SOURCE_SNAPSHOT_REPORT ?= /private/tmp/dialectical-engine-source-snapshot.json",
+        "LOCAL_CHECK_PYTHON ?= $(PYTHON)",
+        "CLOUDFLARE_NAMESERVERS ?=",
+        "ROMARG_NAMESERVER_CARD ?= Romarg_Nameservers_To_Set.md",
         "local-status: local-single-machine-acceptance local-next-steps",
         "setup-status:",
         "$(MAKE) local-single-machine-check",
@@ -3278,6 +3281,8 @@ def makefile_deploy_targets_summary() -> str:
         'scripts/manual_setup_checklist.py --auth-report "$(MODEL_AUTH_REPORT)" --hosting-report "$(HOSTING_STATUS_REPORT)"',
         "hosting-status:",
         'scripts/hosting_status.py --domain "$(DEZBATERE_DOMAIN)" --report-path "$(HOSTING_STATUS_REPORT)"',
+        "prepare-romarg-nameservers:",
+        'scripts/prepare_romarg_nameservers.py $(if $(strip $(CLOUDFLARE_NAMESERVERS)),--nameservers "$(CLOUDFLARE_NAMESERVERS)",) --output "$(ROMARG_NAMESERVER_CARD)"',
         "probe-model-auth:",
         'scripts/local_single_machine_check.py --probe-models --report-path "$(MODEL_AUTH_REPORT)"',
         "deploy-preflight:",

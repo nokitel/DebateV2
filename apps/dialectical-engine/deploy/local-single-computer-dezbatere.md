@@ -194,12 +194,14 @@ Model auth follow-up is tracked in `ModelAuth_TODO.md`.
 The practical setup is Cloudflare Tunnel, not traditional hosting.
 
 1. Add `dezbatere.ro` to Cloudflare.
-2. At Romarg, change the domain nameservers from the current Romarg nameservers
-   to the two Cloudflare nameservers assigned for the zone.
-3. After Cloudflare shows the zone active, create a named tunnel on this Mac.
-4. Route both `dezbatere.ro` and `www.dezbatere.ro` to the tunnel.
-5. Point the tunnel service to `http://127.0.0.1:3000`.
-6. Stop the current quick tunnel once the named tunnel is verified.
+2. Run `CLOUDFLARE_NAMESERVERS="first.ns.cloudflare.com second.ns.cloudflare.com" make prepare-romarg-nameservers`
+   with the exact two Cloudflare nameservers assigned for the zone.
+3. At Romarg, replace the current Romarg nameservers with only those two
+   validated Cloudflare nameservers.
+4. After Cloudflare shows the zone active, create a named tunnel on this Mac.
+5. Route both `dezbatere.ro` and `www.dezbatere.ro` to the tunnel.
+6. Point the tunnel service to `http://127.0.0.1:3000`.
+7. Stop the current quick tunnel once the named tunnel is verified.
 
 After the Cloudflare zone is active, run:
 
