@@ -71,6 +71,10 @@ Expected local file after success:
 ~/.cloudflared/cert.pem
 ```
 
+After Cloudflare login, the guided helper can also run the named tunnel setup
+step. It will stop with the same checks as `make resume-dezbatere-hosting` if
+DNS delegation or login is still incomplete.
+
 ## 4. Create And Configure The Named Tunnel
 
 From the project directory:

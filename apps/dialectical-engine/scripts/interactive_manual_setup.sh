@@ -111,6 +111,13 @@ else
     echo "Skipping Cloudflare login because cloudflared is not installed."
 fi
 
+if confirm "Run named Cloudflare tunnel setup now if DNS and login are ready?"; then
+    make hosting-status || true
+    make resume-dezbatere-hosting || true
+else
+    echo "Resume named hosting later with: make resume-dezbatere-hosting"
+fi
+
 if confirm "Refresh setup reports now?"; then
     make setup-status
 else

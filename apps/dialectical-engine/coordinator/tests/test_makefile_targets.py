@@ -52,6 +52,8 @@ def test_makefile_exposes_interactive_manual_setup_target() -> None:
     assert "make refresh-local-models" in helper
     assert "Create Romarg nameserver paste card" in helper
     assert "make prepare-romarg-nameservers" in helper
+    assert "Run named Cloudflare tunnel setup now if DNS and login are ready?" in helper
+    assert "make resume-dezbatere-hosting" in helper
 
 
 def test_makefile_exposes_romarg_nameserver_card_target() -> None:
