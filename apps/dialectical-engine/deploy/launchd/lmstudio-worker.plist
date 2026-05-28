@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.dialectical.lmstudio-worker</string>
+  <key>WorkingDirectory</key>
+  <string>__ROOT__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+    <key>DYLD_LIBRARY_PATH</key>
+    <string>__PYTHON_DYLD_LIBRARY_PATH__</string>
+  </dict>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PYTHON__</string>
+    <string>scripts/lmstudio_worker.py</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/dialectical-lmstudio-worker.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/dialectical-lmstudio-worker.err.log</string>
+</dict>
+</plist>
