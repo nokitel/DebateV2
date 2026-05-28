@@ -24,6 +24,9 @@ The guided helper can start this flow:
 make interactive-manual-setup
 ```
 
+After the login prompts, accept the helper's local model routing refresh so the
+worker can advertise any newly working Claude/Gemini model immediately.
+
 Or run this interactively in a terminal:
 
 ```sh
@@ -81,6 +84,10 @@ After changing auth:
 ```sh
 make refresh-local-models
 ```
+
+The interactive helper offers to run this refresh for you after the account
+login prompts. If you run Claude/Gemini login manually, run the command above
+afterward.
 
 To check auth without changing runtime routing:
 

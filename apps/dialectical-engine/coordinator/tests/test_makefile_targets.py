@@ -48,6 +48,8 @@ def test_makefile_exposes_interactive_manual_setup_target() -> None:
 
     assert "interactive-manual-setup:" in makefile
     assert "./scripts/interactive_manual_setup.sh" in makefile
+    assert "Refresh local model routing after Claude/Gemini login now?" in helper
+    assert "make refresh-local-models" in helper
     assert "Create Romarg nameserver paste card" in helper
     assert "make prepare-romarg-nameservers" in helper
 

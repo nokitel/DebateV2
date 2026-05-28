@@ -110,7 +110,8 @@ with the real values to write `Romarg_Nameservers_To_Set.md` for the Romarg
 form.
 Run `make interactive-manual-setup` from a normal Terminal to start the Claude,
 Gemini Google-account, and Cloudflare browser login flows; it refuses to run in
-non-interactive automation.
+non-interactive automation. After Claude/Gemini login, accept its local model
+routing refresh so the worker advertises newly usable personal models.
 The remaining manual gates are also tracked in
 `https://github.com/DebateAIRO/debateairo/issues/5`.
 Because this local `dialectical-engine` directory is not currently a git

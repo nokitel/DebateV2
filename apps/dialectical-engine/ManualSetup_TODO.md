@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T01:13:35.497065+00:00`
+Generated at: `2026-05-28T01:21:04.753950+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
@@ -26,9 +26,9 @@ Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 - [ ] Gemini Google-account auth works. Current detail: waiting for Google OAuth.
 
 Commands after completing Claude/Gemini login:
+If you use `make interactive-manual-setup`, accept its local model routing refresh. If you log in manually, run:
 
 ```sh
-make interactive-manual-setup
 make probe-model-auth
 make refresh-local-models
 make local-status

@@ -75,6 +75,12 @@ else
     echo "Skipping Gemini login because the gemini command is not installed."
 fi
 
+if confirm "Refresh local model routing after Claude/Gemini login now?"; then
+    make refresh-local-models || true
+else
+    echo "Refresh local model routing later with: make refresh-local-models"
+fi
+
 if confirm "Create Romarg nameserver paste card from Cloudflare-assigned nameservers now?"; then
     printf "Paste the two Cloudflare nameservers: "
     IFS= read -r cloudflare_nameservers
