@@ -107,6 +107,8 @@ alias that points back to the requested filename.
 Run `make interactive-manual-setup` from a normal Terminal to start the Claude,
 Gemini Google-account, and Cloudflare browser login flows; it refuses to run in
 non-interactive automation.
+The remaining manual gates are also tracked in
+`https://github.com/DebateAIRO/debateairo/issues/5`.
 Because this local `dialectical-engine` directory is not currently a git
 checkout, run `make source-snapshot` to create a clean archive for repository
 import. See `RepoHandoff_TODO.md`.

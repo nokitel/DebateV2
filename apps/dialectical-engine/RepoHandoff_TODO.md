@@ -9,6 +9,8 @@ imported into a GitHub repository.
   git checkout.
 - `/Users/stefannour/Documents/AI-Harness` is a clean checkout of
   `https://github.com/DebateAIRO/debateairo.git`.
+- The remaining manual `dezbatere.ro` setup gates are tracked at
+  `https://github.com/DebateAIRO/debateairo/issues/5`.
 - `AI-Harness/AGENTS.md` says that checkout is the AI Harness skeleton source of
   truth, so the app should not be copied into it casually without choosing an
   explicit destination path or repository strategy.

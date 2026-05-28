@@ -6,7 +6,8 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T00:11:19.910575+00:00`
+Generated at: `2026-05-28T00:47:14.954042+00:00`
+Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
 
@@ -63,3 +64,4 @@ Manual order:
 - `Cloudflare_TODO.md`
 - `ModelAuth_TODO.md`
 - `deploy/local-single-computer-dezbatere.md`
+- GitHub tracking issue: https://github.com/DebateAIRO/debateairo/issues/5

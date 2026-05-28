@@ -13,6 +13,7 @@ DEFAULT_ACCEPTANCE_REPORT = Path("/private/tmp/dialectical-local-single-machine-
 DEFAULT_AUTH_REPORT = Path("/private/tmp/dialectical-model-auth-check.json")
 DEFAULT_HOSTING_REPORT = Path("/private/tmp/dialectical-hosting-status.json")
 DEFAULT_OUTPUT = Path("ManualSetup_TODO.md")
+SETUP_TRACKING_ISSUE = "https://github.com/DebateAIRO/debateairo/issues/5"
 CLAUDE_MODEL = "claude-sonnet-4.5"
 CODEX_MODEL = "codex-gpt-5"
 GEMINI_MODEL = "gemini-2.5-pro"
@@ -178,6 +179,7 @@ def main() -> int:
         "```",
         "",
         f"Generated at: `{generated_at}`",
+        f"Tracking issue: {SETUP_TRACKING_ISSUE}",
         "",
         "## Current Proof",
         "",
@@ -246,6 +248,7 @@ def main() -> int:
         "- `Cloudflare_TODO.md`",
         "- `ModelAuth_TODO.md`",
         "- `deploy/local-single-computer-dezbatere.md`",
+        f"- GitHub tracking issue: {SETUP_TRACKING_ISSUE}",
         "",
     ]
 
