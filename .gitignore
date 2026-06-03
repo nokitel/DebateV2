@@ -1,0 +1,15 @@
+.DS_Store
+.pnpm-store/
+
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+
+dialectical-engine/.venv/
+dialectical-engine/.venv*/
+dialectical-engine/.dialectical-dev/
+dialectical-engine/web/.next/
+dialectical-engine/web/.next-dev*/
+dialectical-engine/web/node_modules/
+dialectical-engine/web/out/

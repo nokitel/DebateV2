@@ -1,0 +1,419 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { API_BASE, clearStoredToken, getDebate, getStoredToken, setStoredToken, validateUserToken } from "@/lib/api";
+import type { DebateDetail, DebateNode } from "@/lib/types";
+import { DebateTree } from "@/components/DebateTree";
+
+type SynthesisDraft = {
+  model_id?: string;
+  worker_id?: string;
+  raw: string;
+};
+
+type StreamState = {
+  status: "connecting" | "live" | "reconnecting";
+  retryInMs?: number;
+};
+
+function parseEventData(event: Event): Record<string, unknown> | null {
+  const data = (event as MessageEvent).data;
+  if (typeof data !== "string" || !data) return null;
+  try {
+    const payload = JSON.parse(data);
+    return payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function payloadString(payload: Record<string, unknown> | null, key: string): string | undefined {
+  const value = payload?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function decodeJsonSnippet(value: string): string {
+  try {
+    return JSON.parse(`"${value}"`) as string;
+  } catch {
+    return value.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+}
+
+function partialJsonField(raw: string, key: string): string {
+  const keyIndex = raw.indexOf(`"${key}"`);
+  if (keyIndex < 0) return "";
+  const colonIndex = raw.indexOf(":", keyIndex);
+  if (colonIndex < 0) return "";
+  const quoteIndex = raw.indexOf('"', colonIndex);
+  if (quoteIndex < 0) return "";
+  let escaped = false;
+  let value = "";
+  for (let index = quoteIndex + 1; index < raw.length; index += 1) {
+    const char = raw[index];
+    if (escaped) {
+      value += `\\${char}`;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') return decodeJsonSnippet(value);
+    value += char;
+  }
+  return decodeJsonSnippet(value);
+}
+
+function activeSynthesisDraft(debate: DebateDetail | null): SynthesisDraft | null {
+  if (!debate?.active_synthesis || debate.synthesis) return null;
+  return {
+    model_id: debate.active_synthesis.model_id,
+    worker_id: debate.active_synthesis.worker_id,
+    raw: debate.active_synthesis.raw || ""
+  };
+}
+
+function appendToken(node: DebateNode, nodeId: string, delta: string): DebateNode {
+  if (node.id === nodeId) {
+    const generation = node.active_generation || {
+      id: "streaming",
+      model_id: "streaming",
+      role: "streaming",
+      argument: "",
+      worker_id: "",
+      created_at: new Date().toISOString()
+    };
+    return {
+      ...node,
+      status: "generating",
+      active_generation: { ...generation, argument: `${generation.argument}${delta}` }
+    };
+  }
+  return { ...node, children: node.children.map((child) => appendToken(child, nodeId, delta)) };
+}
+
+function beginNodeStream(
+  node: DebateNode,
+  payload: { node_id?: string; model_id?: string; worker_id?: string; role?: string }
+): DebateNode {
+  if (node.id === payload.node_id) {
+    return {
+      ...node,
+      status: "generating",
+      active_generation: {
+        id: "streaming",
+        model_id: payload.model_id || "streaming",
+        role: payload.role || "streaming",
+        argument: "",
+        worker_id: payload.worker_id || "",
+        created_at: new Date().toISOString()
+      }
+    };
+  }
+  return { ...node, children: node.children.map((child) => beginNodeStream(child, payload)) };
+}
+
+export default function DebatePageClient({
+  id,
+  initialDebate,
+  initialError = null
+}: {
+  id: string;
+  initialDebate: DebateDetail | null;
+  initialError?: string | null;
+}) {
+  const [debate, setDebate] = useState<DebateDetail | null>(initialDebate);
+  const [synthesisDraft, setSynthesisDraft] = useState<SynthesisDraft | null>(() =>
+    activeSynthesisDraft(initialDebate)
+  );
+  const [error, setError] = useState<string | null>(initialError);
+  const [streamState, setStreamState] = useState<StreamState>({ status: "connecting" });
+  const [actionToken, setActionToken] = useState<string | null>(null);
+  const [tokenDraft, setTokenDraft] = useState("");
+  const [tokenBusy, setTokenBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const latest = await getDebate(id);
+      setDebate(latest);
+      const draft = activeSynthesisDraft(latest);
+      if (draft) {
+        setSynthesisDraft(draft);
+      } else if (latest.synthesis) {
+        setSynthesisDraft(null);
+      }
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Unable to load debate");
+    }
+  }, [id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    let active = true;
+    async function validateStoredToken() {
+      const stored = getStoredToken();
+      if (!stored) return;
+      try {
+        await validateUserToken(stored);
+        if (active) setActionToken(stored);
+      } catch {
+        clearStoredToken();
+        if (active) setActionToken(null);
+      }
+    }
+    validateStoredToken();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let events: EventSource | null = null;
+    let timer: number | null = null;
+    let stopped = false;
+    let attempt = 0;
+
+    function scheduleReconnect() {
+      if (stopped || timer) return;
+      const delay = Math.min(30000, 1000 * 2 ** attempt);
+      attempt += 1;
+      setStreamState({ status: "reconnecting", retryInMs: delay });
+      timer = window.setTimeout(connect, delay);
+    }
+
+    function connect() {
+      timer = null;
+      events?.close();
+      setStreamState({ status: "connecting" });
+      events = new EventSource(`${API_BASE}/api/debates/${id}/events`);
+      events.onopen = () => {
+        attempt = 0;
+        setStreamState({ status: "live" });
+        refresh();
+      };
+      events.addEventListener("tree_ready", () => refresh());
+      events.addEventListener("node_started", (event) => {
+        const payload = parseEventData(event);
+        const nodeId = payloadString(payload, "node_id");
+        const modelId = payloadString(payload, "model_id");
+        const workerId = payloadString(payload, "worker_id");
+        const role = payloadString(payload, "role");
+        setDebate((current) =>
+          current?.tree && nodeId
+            ? {
+                ...current,
+                tree: beginNodeStream(current.tree, {
+                  node_id: nodeId,
+                  model_id: modelId,
+                  worker_id: workerId,
+                  role
+                })
+              }
+            : current
+        );
+      });
+      events.addEventListener("node_token", (event) => {
+        const payload = parseEventData(event);
+        const nodeId = payloadString(payload, "node_id");
+        const delta = payloadString(payload, "delta");
+        setDebate((current) =>
+          current?.tree && nodeId && delta ? { ...current, tree: appendToken(current.tree, nodeId, delta) } : current
+        );
+      });
+      events.addEventListener("node_complete", () => refresh());
+      events.addEventListener("node_failed", (event) => {
+        const payload = parseEventData(event);
+        setError(payloadString(payload, "reason") || "Node generation failed");
+      });
+      events.addEventListener("synthesis_started", (event) => {
+        const payload = parseEventData(event);
+        setSynthesisDraft({
+          model_id: payloadString(payload, "model_id"),
+          worker_id: payloadString(payload, "worker_id"),
+          raw: ""
+        });
+      });
+      events.addEventListener("synthesis_token", (event) => {
+        const payload = parseEventData(event);
+        const delta = payloadString(payload, "delta") || "";
+        setSynthesisDraft((current) => ({
+          model_id: current?.model_id,
+          worker_id: current?.worker_id,
+          raw: `${current?.raw || ""}${delta}`
+        }));
+      });
+      events.addEventListener("synthesis_complete", () => {
+        setSynthesisDraft(null);
+        refresh();
+      });
+      events.addEventListener("debate_complete", () => {
+        setSynthesisDraft(null);
+        refresh();
+      });
+      events.addEventListener("error", (event) => {
+        const payload = parseEventData(event);
+        if (payload) setError(payloadString(payload, "message") || "Debate stream error");
+      });
+      events.onerror = () => {
+        events?.close();
+        refresh();
+        scheduleReconnect();
+      };
+    }
+
+    connect();
+    return () => {
+      stopped = true;
+      events?.close();
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [id, refresh]);
+
+  const exportUrl = useMemo(() => `${API_BASE}/api/debates/${id}/export.md`, [id]);
+  const strongestPro =
+    debate?.synthesis?.strongest_pro || partialJsonField(synthesisDraft?.raw || "", "strongest_pro") || "Pending";
+  const strongestCon =
+    debate?.synthesis?.strongest_con || partialJsonField(synthesisDraft?.raw || "", "strongest_con") || "Pending";
+  const verdict = debate?.synthesis?.verdict || partialJsonField(synthesisDraft?.raw || "", "verdict") || "Pending";
+  const synthesisStreaming = Boolean(synthesisDraft && !debate?.synthesis);
+  const streamLabel =
+    streamState.status === "live"
+      ? "Live stream connected"
+      : streamState.status === "reconnecting"
+        ? `Reconnecting in ${Math.ceil((streamState.retryInMs || 0) / 1000)}s`
+        : "Connecting stream";
+
+  async function unlockActions(event: FormEvent) {
+    event.preventDefault();
+    const value = tokenDraft.trim();
+    if (!value) return;
+    setTokenBusy(true);
+    setError(null);
+    try {
+      await validateUserToken(value);
+      setStoredToken(value);
+      setActionToken(value);
+      setTokenDraft("");
+    } catch {
+      clearStoredToken();
+      setActionToken(null);
+      setError("Token was rejected by the coordinator.");
+    } finally {
+      setTokenBusy(false);
+    }
+  }
+
+  function lockActions() {
+    clearStoredToken();
+    setActionToken(null);
+    setTokenDraft("");
+  }
+
+  function rejectActionToken() {
+    clearStoredToken();
+    setActionToken(null);
+  }
+
+  if (error && !debate) {
+    return (
+      <main className="page">
+        <div className="error">{error}</div>
+      </main>
+    );
+  }
+  if (!debate) {
+    return (
+      <main className="page">
+        <p className="muted">Loading...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="page">
+      <div className="pageHeader">
+        <div>
+          <h1>{debate.topic}</h1>
+          <div className="toolbar">
+            <span className="statusPill">{debate.status}</span>
+            <span className="statusPill">{debate.node_count} nodes</span>
+            <span className={`statusPill ${streamState.status === "live" ? "statusOnline" : "statusDegraded"}`}>
+              {streamLabel}
+            </span>
+            {debate.models.map((model) => (
+              <span key={model} className="badge">
+                {model}
+              </span>
+            ))}
+          </div>
+        </div>
+        <a href={exportUrl}>
+          <button className="secondary">Export Markdown</button>
+        </a>
+      </div>
+      <div className="actionAuthBar">
+        {actionToken ? (
+          <button className="secondary" type="button" onClick={lockActions}>
+            Lock Actions
+          </button>
+        ) : (
+          <form className="inlineAuthForm" onSubmit={unlockActions}>
+            <label className="srOnly" htmlFor="debate-action-token">
+              User token
+            </label>
+            <input
+              id="debate-action-token"
+              value={tokenDraft}
+              onChange={(event) => setTokenDraft(event.target.value)}
+              type="password"
+              autoComplete="off"
+              placeholder="User token"
+            />
+            <button className="secondary" type="submit" disabled={tokenBusy}>
+              {tokenBusy ? "Checking..." : "Unlock Actions"}
+            </button>
+          </form>
+        )}
+      </div>
+      {error ? <div className="error">{error}</div> : null}
+      <div className="treeViewport">
+        {debate.tree ? (
+          <DebateTree
+            node={debate.tree}
+            token={actionToken}
+            onQueued={refresh}
+            onError={setError}
+            onAuthRejected={rejectActionToken}
+          />
+        ) : null}
+      </div>
+      <div className="synthesisPanel">
+        <section>
+          <h2>Strongest Pro</h2>
+          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestPro}</p>
+        </section>
+        <section>
+          <h2>Strongest Con</h2>
+          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestCon}</p>
+        </section>
+        <section>
+          <h2>Verdict</h2>
+          <p className={synthesisStreaming ? "cursor" : undefined}>{verdict}</p>
+          {synthesisDraft?.model_id ? (
+            <div className="synthesisMeta">
+              {synthesisDraft.model_id}
+              {synthesisDraft.worker_id ? ` - ${synthesisDraft.worker_id}` : ""}
+            </div>
+          ) : null}
+        </section>
+      </div>
+    </main>
+  );
+}
