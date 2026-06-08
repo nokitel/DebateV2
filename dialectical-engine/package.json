@@ -1,0 +1,15 @@
+{
+  "name": "dialectical-engine",
+  "version": "1.0.0",
+  "description": "Local-first debate generation platform. A FastAPI coordinator owns SQLite state, local workers pull jobs and use installed model CLIs/API backends, and a Next.js UI renders public debate trees with token-gated write/admin operations.",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "make": "^0.8.1"
+  }
+}
