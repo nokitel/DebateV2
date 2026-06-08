@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - runtime target is 3.12+, tests
 DEFAULT_COORDINATOR_DIR = Path("~/.dialectical").expanduser()
 DEFAULT_DB_PATH = DEFAULT_COORDINATOR_DIR / "db.sqlite3"
 DEFAULT_CONFIG_PATH = DEFAULT_COORDINATOR_DIR / "coordinator.toml"
+DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 RUNTIME_SETTINGS_KEY = "runtime_settings"
 MAX_PUBLIC_RATE_LIMIT_PER_MINUTE = 100_000
 MAX_WORKER_POLL_SECONDS = 300
@@ -73,6 +74,10 @@ class Settings:
     job_fallback_seconds: int = 60
     routing: dict[str, dict[str, Any]] = field(default_factory=lambda: deepcopy(DEFAULT_ROUTING))
     grok_monthly_cap_usd: float = 25.0
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-5.2"
+    single_shot_provider: str = "codex"
+    codex_command: str = "codex"
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -110,6 +115,22 @@ def clean_string(value: Any, default: str) -> str:
     return cleaned or default
 
 
+def load_dotenv(path: Path | None = None) -> None:
+    path = path or DEFAULT_ENV_PATH
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip().strip('"').strip("'")
+        os.environ[key] = value
+
+
 def int_env(name: str, default: int, minimum: int, maximum: int) -> int:
     value = os.getenv(name)
     return bounded_int(value, default, minimum, maximum) if value is not None else default
@@ -121,6 +142,7 @@ def float_env(name: str, default: float, minimum: float, maximum: float) -> floa
 
 
 def load_settings(path: Path | None = None) -> Settings:
+    load_dotenv()
     path = path or Path(os.getenv("DIALECTICAL_COORDINATOR_CONFIG", DEFAULT_CONFIG_PATH)).expanduser()
     home = Path(os.getenv("DIALECTICAL_HOME", str(DEFAULT_COORDINATOR_DIR))).expanduser()
     db_url = os.getenv("DIALECTICAL_DATABASE_URL", f"sqlite:///{home / 'db.sqlite3'}")
@@ -196,6 +218,12 @@ def load_settings(path: Path | None = None) -> Settings:
         0.0,
         MAX_GROK_MONTHLY_CAP_USD,
     )
+    settings.openai_api_key = os.getenv("OPENAI_API_KEY") or None
+    settings.openai_model = clean_string(os.getenv("OPENAI_MODEL"), settings.openai_model)
+    settings.single_shot_provider = clean_string(
+        os.getenv("DIALECTICAL_SINGLE_SHOT_PROVIDER"), settings.single_shot_provider
+    ).lower()
+    settings.codex_command = clean_string(os.getenv("CODEX_COMMAND"), settings.codex_command)
     return settings
 
 

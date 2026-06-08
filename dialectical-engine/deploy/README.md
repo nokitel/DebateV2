@@ -13,12 +13,13 @@ Worker preflight also reports the configured `allowed_models` pin and whether th
 4. If installing manually, run `make install-tunnel TUNNEL_NAME=dialectical TUNNEL_HOSTNAME=debate.<your-domain> CLOUDFLARED_CREDENTIALS=$HOME/.cloudflared/<tunnel-id>.json`. `TUNNEL_NAME` must be a real Cloudflare tunnel name or UUID, `TUNNEL_HOSTNAME` must be a DNS hostname, not a URL or `trycloudflare.com` quick tunnel host, and the credentials JSON must contain `AccountTag`, UUID-shaped `TunnelID`, and `TunnelSecret`. After the named tunnel is verified, run `make stop-quick-tunnel` so final status no longer uses the temporary quick-tunnel URL.
 5. Build the web UI with `pnpm --dir web build`.
 6. Install coordinator and web launchd services with `make install-services`.
-7. Read the user token from the coordinator launch log on first boot if you did not set `DIALECTICAL_USER_TOKEN`: `tail -n 50 /tmp/dialectical-coordinator.out.log`.
-8. Register and start Worker A with `make install-worker COORDINATOR_URL=http://localhost:8000 WORKER_NAME=mac-mini`. Set `DIALECTICAL_ALLOWED_MODELS=codex-gpt-5.5` first if installed Claude/Gemini CLIs should stay hidden until unattended auth is proved. Set `GEMINI_API_KEY` or `XAI_API_KEY` in the same environment if the launchd worker should use those API-backed adapters.
-8. Rerun `make deploy-preflight DEPLOY_ROLE=both PREFLIGHT_FLAGS="--require-installed-services --require-registered-worker"` and resolve any `FAIL` lines. If it reports an old `user_token` in the worker config, rerun with `PREFLIGHT_FLAGS="--repair-worker-config --require-registered-worker"`.
-9. Check the live service state with `make status STATUS_FLAGS=--check-endpoints`; endpoint-check failures make the command exit nonzero.
-10. Generate handoff bundles with `make handoff-bundles PUBLIC_URL=https://debate.<your-domain>`.
-11. Confirm the public hostname with `make acceptance COORDINATOR_URL=https://debate.<your-domain> EXPECTED_WORKERS=1 EXPECTED_WORKER_NAMES=mac-mini`. The target prompts for the user token with terminal echo disabled unless `USER_TOKEN` is already set in the environment. Worker B onboarding and URL-switch helpers also verify the token-free `/api/backends/status` endpoint before prompting for a token or changing Worker B config.
+7. Set `OPENAI_API_KEY` in the coordinator service environment for `/new` single-shot debate creation. Set `OPENAI_MODEL` only when overriding the default `gpt-5.2`.
+8. Read the user token from the coordinator launch log on first boot if you did not set `DIALECTICAL_USER_TOKEN`: `tail -n 50 /tmp/dialectical-coordinator.out.log`.
+9. Register and start Worker A with `make install-worker COORDINATOR_URL=http://localhost:8000 WORKER_NAME=mac-mini`. Set `DIALECTICAL_ALLOWED_MODELS=codex-gpt-5.5` first if installed Claude/Gemini CLIs should stay hidden until unattended auth is proved. Set `GEMINI_API_KEY` or `XAI_API_KEY` in the same environment if the launchd worker should use those API-backed adapters.
+10. Rerun `make deploy-preflight DEPLOY_ROLE=both PREFLIGHT_FLAGS="--require-installed-services --require-registered-worker"` and resolve any `FAIL` lines. If it reports an old `user_token` in the worker config, rerun with `PREFLIGHT_FLAGS="--repair-worker-config --require-registered-worker"`.
+11. Check the live service state with `make status STATUS_FLAGS=--check-endpoints`; endpoint-check failures make the command exit nonzero.
+12. Generate handoff bundles with `make handoff-bundles PUBLIC_URL=https://debate.<your-domain>`.
+13. Confirm the public hostname with `make acceptance COORDINATOR_URL=https://debate.<your-domain> EXPECTED_WORKERS=1 EXPECTED_WORKER_NAMES=mac-mini`. The target prompts for the user token with terminal echo disabled unless `USER_TOKEN` is already set in the environment. Worker B onboarding and URL-switch helpers also verify the token-free `/api/backends/status` endpoint before prompting for a token or changing Worker B config.
 
 ## adesso MacBook
 

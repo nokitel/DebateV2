@@ -17,3 +17,4 @@ coordinator/.coverage
 coordinator/.pytest_cache/
 worker/.coverage
 worker/.pytest_cache/
+.env

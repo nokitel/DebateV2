@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { API_BASE, clearStoredToken, getDebate, getStoredToken, setStoredToken, validateUserToken } from "@/lib/api";
-import type { DebateDetail, DebateNode } from "@/lib/types";
+import type { DebateDetail, DebateNode, SingleShotResult } from "@/lib/types";
 import { DebateTree } from "@/components/DebateTree";
 
 type SynthesisDraft = {
@@ -73,6 +73,28 @@ function activeSynthesisDraft(debate: DebateDetail | null): SynthesisDraft | nul
     worker_id: debate.active_synthesis.worker_id,
     raw: debate.active_synthesis.raw || ""
   };
+}
+
+function isSingleShotResult(value: unknown): value is SingleShotResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Partial<SingleShotResult>;
+  return (
+    Array.isArray(result.pros) &&
+    result.pros.every((item) => typeof item === "string") &&
+    Array.isArray(result.cons) &&
+    result.cons.every((item) => typeof item === "string") &&
+    typeof result.strongest_pro === "string" &&
+    typeof result.strongest_con === "string" &&
+    Boolean(result.global_winner) &&
+    typeof result.global_winner === "object" &&
+    ["pro", "con", "balanced"].includes((result.global_winner as { side?: string }).side || "") &&
+    typeof (result.global_winner as { reason?: unknown }).reason === "string" &&
+    typeof result.final_text === "string" &&
+    typeof result.model_id === "string" &&
+    typeof result.tokens_in === "number" &&
+    typeof result.tokens_out === "number" &&
+    typeof result.created_at === "string"
+  );
 }
 
 function appendToken(node: DebateNode, nodeId: string, delta: string): DebateNode {
@@ -283,6 +305,14 @@ export default function DebatePageClient({
     debate?.synthesis?.strongest_con || partialJsonField(synthesisDraft?.raw || "", "strongest_con") || "Pending";
   const verdict = debate?.synthesis?.verdict || partialJsonField(synthesisDraft?.raw || "", "verdict") || "Pending";
   const synthesisStreaming = Boolean(synthesisDraft && !debate?.synthesis);
+  const singleShotResult = isSingleShotResult(debate?.config?.single_shot_result)
+    ? debate.config.single_shot_result
+    : null;
+  const singleShotCreatedAt = singleShotResult ? new Date(singleShotResult.created_at) : null;
+  const singleShotCreatedLabel =
+    singleShotCreatedAt && !Number.isNaN(singleShotCreatedAt.getTime())
+      ? singleShotCreatedAt.toLocaleString()
+      : singleShotResult?.created_at;
   const streamLabel =
     streamState.status === "live"
       ? "Live stream connected"
@@ -383,6 +413,50 @@ export default function DebatePageClient({
         )}
       </div>
       {error ? <div className="error">{error}</div> : null}
+      {singleShotResult ? (
+        <div className="singleShotPanel" aria-label="Single-shot result">
+          <section className="singleShotFinal">
+            <div className="singleShotHeader">
+              <h2>Single-Shot Result</h2>
+              <span className="statusPill">Winner: {singleShotResult.global_winner.side}</span>
+            </div>
+            <p>{singleShotResult.final_text}</p>
+            <p className="muted">{singleShotResult.global_winner.reason}</p>
+            <div className="singleShotStrongest">
+              <div>
+                <h3>Strongest Pro</h3>
+                <blockquote>{singleShotResult.strongest_pro}</blockquote>
+              </div>
+              <div>
+                <h3>Strongest Con</h3>
+                <blockquote>{singleShotResult.strongest_con}</blockquote>
+              </div>
+            </div>
+            <div className="singleShotMeta" aria-label="Single-shot metadata">
+              <span>{singleShotResult.model_id}</span>
+              <span>{singleShotResult.tokens_in} tokens in</span>
+              <span>{singleShotResult.tokens_out} tokens out</span>
+              <span>{singleShotCreatedLabel}</span>
+            </div>
+          </section>
+          <section>
+            <h2>Pros ({singleShotResult.pros.length})</h2>
+            <ul className="singleShotList">
+              {singleShotResult.pros.map((argument, index) => (
+                <li key={`${index}-${argument}`}>{argument}</li>
+              ))}
+            </ul>
+          </section>
+          <section>
+            <h2>Cons ({singleShotResult.cons.length})</h2>
+            <ul className="singleShotList">
+              {singleShotResult.cons.map((argument, index) => (
+                <li key={`${index}-${argument}`}>{argument}</li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      ) : null}
       <div className="treeViewport">
         {debate.tree ? (
           <DebateTree

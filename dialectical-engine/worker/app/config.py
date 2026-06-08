@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -52,13 +53,17 @@ def resolved_config_path(path: Path | None = None) -> Path:
     return (path or Path(os.getenv("DIALECTICAL_WORKER_CONFIG", DEFAULT_CONFIG_PATH))).expanduser()
 
 
+def default_worker_name() -> str:
+    return socket.gethostname()
+
+
 @dataclass
 class WorkerConfig:
     coordinator_url: str = "http://localhost:8000"
     worker_id: str | None = None
     worker_token: str | None = None
     user_token: str | None = None
-    name: str = os.uname().nodename
+    name: str = default_worker_name()
     enable_mock: bool = False
     enable_real_adapters: bool = True
     mock_models: list[str] | None = None
@@ -75,7 +80,7 @@ def load_config(path: Path | None = None) -> WorkerConfig:
         worker_id=os.getenv("DIALECTICAL_WORKER_ID", data.get("worker_id")),
         worker_token=os.getenv("DIALECTICAL_WORKER_TOKEN", data.get("worker_token")),
         user_token=os.getenv("DIALECTICAL_USER_TOKEN", data.get("user_token")),
-        name=os.getenv("DIALECTICAL_WORKER_NAME", data.get("name", os.uname().nodename)),
+        name=os.getenv("DIALECTICAL_WORKER_NAME", data.get("name", default_worker_name())),
         enable_mock=as_bool(os.getenv("DIALECTICAL_ENABLE_MOCK"), as_bool(data.get("enable_mock", False))),
         enable_real_adapters=as_bool(
             os.getenv("DIALECTICAL_ENABLE_REAL_ADAPTERS"),
@@ -128,7 +133,7 @@ def load_file_config(path: Path | None = None) -> WorkerConfig:
         worker_id=data.get("worker_id"),
         worker_token=data.get("worker_token"),
         user_token=data.get("user_token"),
-        name=data.get("name", os.uname().nodename),
+        name=data.get("name", default_worker_name()),
         enable_mock=as_bool(data.get("enable_mock", False)),
         enable_real_adapters=as_bool(data.get("enable_real_adapters", True)),
         mock_models=parse_model_list(data.get("mock_models")),

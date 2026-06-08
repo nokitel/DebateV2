@@ -53,7 +53,7 @@ def build_process_specs(
         raise ValueError("DIALECTICAL_DEV_NEXT_MODE must be 'dev' or 'start'")
     coordinator_url = f"http://localhost:{coordinator_port}"
     coordinator_args = [python, "-m", "uvicorn", "app.main:app", "--port", str(coordinator_port)]
-    if enabled_env(environ, "DIALECTICAL_DEV_RELOAD", True):
+    if enabled_env(environ, "DIALECTICAL_DEV_RELOAD", os.name != "nt"):
         coordinator_args.insert(4, "--reload")
     return [
         ProcessSpec(

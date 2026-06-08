@@ -11,6 +11,7 @@ from app.core.auth import hash_token
 from app.core.config import DEFAULT_ROUTING, RUNTIME_SETTINGS_KEY
 from app.main import _public_hits, app, settings_obj
 from app.models.entities import Debate, Generation, Job, Node, Setting, Synthesis, Worker, now_utc
+from app.api.debates import single_shot_generator_dependency
 from app.api.settings import apply_persisted_runtime_settings
 from app.api.jobs import MAX_FAIL_REASON_CHARS
 from app.services.orchestrator import MAX_STREAM_BUFFER_CHARS, MAX_STREAM_DELTA_CHARS, claim_pending_job, create_debate
@@ -865,6 +866,80 @@ def test_debate_create_rejects_invalid_config_values(db) -> None:
     assert response.status_code == 400
     assert "branching" in response.json()["detail"]
     assert "integer" in response.json()["detail"]
+    assert db.scalar(select(Debate)) is None
+
+
+def test_debate_create_single_shot_mode_returns_completed_result(db) -> None:
+    _public_hits.clear()
+    client = TestClient(app)
+    from app.services.single_shot import DebateGenerationResult
+
+    def fake_generator(topic: str) -> DebateGenerationResult:
+        return DebateGenerationResult(
+            root_claim=topic,
+            pros=[
+                "Fewer cars can reduce collision risk for pedestrians.",
+                "Lower traffic volumes can improve local air quality.",
+                "Reclaimed street space can support public transport and walking.",
+            ],
+            cons=[
+                "Restrictions can reduce access for people who rely on cars.",
+                "Some businesses may lose customers who travel by car.",
+                "Traffic can be displaced into nearby neighborhoods.",
+            ],
+            strongest_pro="Fewer cars can reduce collision risk for pedestrians.",
+            strongest_con="Restrictions can reduce access for people who rely on cars.",
+            global_winner={"side": "pro", "reason": "The safety and air-quality benefits are broader."},
+            final_text="The strongest case favors a careful car ban with access exemptions.",
+            model_id="gpt-5.2",
+            tokens_in=123,
+            tokens_out=456,
+            created_at="2026-06-08T10:00:00+00:00",
+        )
+
+    app.dependency_overrides[single_shot_generator_dependency] = lambda: fake_generator
+
+    response = client.post(
+        "/api/debates",
+        headers=USER_HEADERS,
+        json={"topic": "Should cities ban cars downtown?", "config": {"mode": "single_shot"}},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "complete"
+    assert payload["topic"] == "Should cities ban cars downtown?"
+    assert payload["config"]["mode"] == "single_shot"
+    assert len(payload["config"]["single_shot_result"]["pros"]) == 3
+    assert len(payload["config"]["single_shot_result"]["cons"]) == 3
+    assert payload["config"]["single_shot_result"]["strongest_pro"] in payload["config"]["single_shot_result"]["pros"]
+    assert payload["config"]["single_shot_result"]["strongest_con"] in payload["config"]["single_shot_result"]["cons"]
+    assert payload["config"]["single_shot_result"]["global_winner"]["side"] == "pro"
+    assert payload["config"]["single_shot_result"]["model_id"] == "gpt-5.2"
+    assert payload["tree"]["claim"] == "Should cities ban cars downtown?"
+    assert [child["node_type"] for child in payload["tree"]["children"]] == ["PRO", "PRO", "PRO", "CON", "CON", "CON"]
+    assert db.scalar(select(Job)) is None
+
+
+def test_debate_create_single_shot_failure_creates_no_debate(db) -> None:
+    _public_hits.clear()
+    client = TestClient(app)
+
+    def failing_generator(topic: str):
+        raise RuntimeError("OpenAI generation failed")
+
+    app.dependency_overrides[single_shot_generator_dependency] = lambda: failing_generator
+
+    response = client.post(
+        "/api/debates",
+        headers=USER_HEADERS,
+        json={"topic": "Should cities ban cars downtown?", "config": {"mode": "single_shot"}},
+    )
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 502
+    assert "OpenAI generation failed" in response.json()["detail"]
     assert db.scalar(select(Debate)) is None
 
 

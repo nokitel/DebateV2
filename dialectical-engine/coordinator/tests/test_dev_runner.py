@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -63,15 +64,17 @@ def test_make_dev_topology_defaults_to_goal_ports_and_worker_a() -> None:
     by_name = {spec.name: spec for spec in specs}
 
     assert list(by_name) == ["coordinator", "worker-a", "web"]
-    assert by_name["coordinator"].args == [
+    expected_coordinator_args = [
         "/python",
         "-m",
         "uvicorn",
         "app.main:app",
-        "--reload",
         "--port",
         "8000",
     ]
+    if os.name != "nt":
+        expected_coordinator_args.insert(4, "--reload")
+    assert by_name["coordinator"].args == expected_coordinator_args
     assert by_name["coordinator"].cwd == ROOT / "coordinator"
     assert by_name["coordinator"].env["DIALECTICAL_DATABASE_URL"] == f"sqlite:///{ROOT / '.dialectical-dev' / 'db.sqlite3'}"
 
@@ -119,10 +122,11 @@ def test_make_dev_allows_isolated_ports_for_smoke_checks() -> None:
         },
     )
     by_name = {spec.name: spec for spec in specs}
+    isolated_home = Path("/tmp/dialectical-isolated-dev")
 
     assert by_name["coordinator"].args[-1] == "8765"
-    assert by_name["coordinator"].env["DIALECTICAL_DATABASE_URL"] == "sqlite:////tmp/dialectical-isolated-dev/db.sqlite3"
-    assert by_name["worker-a"].env["DIALECTICAL_WORKER_CONFIG"] == "/tmp/dialectical-isolated-dev/worker.toml"
+    assert by_name["coordinator"].env["DIALECTICAL_DATABASE_URL"] == f"sqlite:///{isolated_home / 'db.sqlite3'}"
+    assert by_name["worker-a"].env["DIALECTICAL_WORKER_CONFIG"] == str(isolated_home / "worker.toml")
     assert by_name["worker-a"].env["DIALECTICAL_COORDINATOR_URL"] == "http://localhost:8765"
     assert by_name["worker-a"].env["DIALECTICAL_USER_TOKEN"] == "user_custom"
     assert by_name["worker-a"].env["DIALECTICAL_WORKER_NAME"] == "custom-worker"

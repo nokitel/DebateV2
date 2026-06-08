@@ -165,6 +165,7 @@ nav {
 .debateRow,
 .formPanel,
 .workersTable,
+.singleShotPanel,
 .synthesisPanel,
 .nodeCard {
   background: var(--panel);
@@ -289,6 +290,98 @@ nav {
 
 .treeViewport > .tree {
   min-width: 720px;
+}
+
+.singleShotPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr);
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 18px;
+}
+
+.singleShotPanel section {
+  background: var(--panel-soft);
+  padding: 14px;
+}
+
+.singleShotPanel h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.singleShotPanel p {
+  margin: 0 0 10px;
+}
+
+.singleShotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.singleShotHeader h2 {
+  margin: 0;
+}
+
+.singleShotHeader .pro {
+  background: #e7f8ef;
+  color: #167245;
+  border-color: #b6e7cb;
+}
+
+.singleShotHeader .con {
+  background: #fff2e3;
+  color: #9a5017;
+  border-color: #f3cf9f;
+}
+
+.singleShotStrongest {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.singleShotStrongest h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.singleShotFinal blockquote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+.singleShotMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.singleShotMeta span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  padding: 3px 8px;
+}
+
+.singleShotList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.singleShotList li + li {
+  margin-top: 8px;
 }
 
 .children {
@@ -541,6 +634,7 @@ nav {
 
   .formGrid,
   .spendRow,
+  .singleShotPanel,
   .synthesisPanel {
     grid-template-columns: 1fr;
   }

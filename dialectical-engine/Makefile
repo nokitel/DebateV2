@@ -1,10 +1,32 @@
+ifeq ($(OS),Windows_NT)
+SHELL := cmd.exe
+.SHELLFLAGS := /C
+else
 SHELL := /bin/bash
+endif
 
 .PHONY: dev dev-smoke test acceptance configure-local-single-machine configure-local-personal-models configure-gemini-google-auth refresh-local-models setup-status interactive-manual-setup source-snapshot local-status local-next-steps manual-setup-checklist hosting-status prepare-romarg-nameservers final-single-machine-check lmstudio-worker lmstudio-worker-once install-lmstudio-worker stop-lmstudio-worker probe-lmstudio-job probe-lmstudio-worker-job probe-model-auth local-cluster-check local-single-machine-check local-single-machine-acceptance wait-dezbatere-dns resume-dezbatere-hosting deploy-preflight status install-status-helper handoff-bundles final-production-check production-readiness production-acceptance-sequence install-services setup-named-tunnel setup-dezbatere-tunnel install-tunnel stop-quick-tunnel install-worker register-worker update-worker-config verify-worker-status verify-worker-visible bootstrap web-install web-build restart-web rebuild-web-service
 
+ifeq ($(OS),Windows_NT)
+PYTHON ?= $(if $(wildcard $(CURDIR)/.venv/Scripts/python.exe),$(CURDIR)/.venv/Scripts/python.exe,python)
+PNPM ?= $(if $(wildcard $(subst \,/,$(APPDATA))/npm/pnpm.cmd),$(subst \,/,$(APPDATA))/npm/pnpm.cmd,pnpm.cmd)
+PNPM_INSTALL_FLAGS ?= --ignore-scripts
+ifeq ($(strip $(PYTHON)),)
+PYTHON := $(if $(wildcard $(CURDIR)/.venv/Scripts/python.exe),$(CURDIR)/.venv/Scripts/python.exe,python)
+endif
+ifeq ($(strip $(PNPM)),)
+PNPM := $(if $(wildcard $(subst \,/,$(APPDATA))/npm/pnpm.cmd),$(subst \,/,$(APPDATA))/npm/pnpm.cmd,pnpm.cmd)
+endif
+else
 PYTHON ?= $(shell for py in "$(CURDIR)/.venv/bin/python" "$(CURDIR)/.venv313/bin/python" "$(CURDIR)/.venv312/bin/python" python3.13 python3.12 python3; do if [ -x "$$py" ]; then resolved="$$py"; elif command -v "$$py" >/dev/null 2>&1; then resolved="$$(command -v "$$py")"; else continue; fi; if "$$resolved" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then printf '%s\n' "$$resolved"; exit; fi; done; if [ -x "$(CURDIR)/.venv/bin/python" ]; then printf '%s\n' "$(CURDIR)/.venv/bin/python"; elif command -v python3 >/dev/null 2>&1; then command -v python3; fi)
 PNPM ?= $(shell command -v pnpm)
+PNPM_INSTALL_FLAGS ?=
+endif
+ifeq ($(OS),Windows_NT)
+PYTHON_DYLD_LIBRARY_PATH ?=
+else
 PYTHON_DYLD_LIBRARY_PATH ?= $(shell if [ -d /opt/homebrew/opt/expat/lib ]; then printf '%s\n' /opt/homebrew/opt/expat/lib; fi)
+endif
 PYTHON_ENV ?= $(if $(PYTHON_DYLD_LIBRARY_PATH),DYLD_LIBRARY_PATH="$(PYTHON_DYLD_LIBRARY_PATH)",)
 TEST_PYCACHE_PREFIX ?= /private/tmp/dialectical-test-pycache
 LOCAL_CHECK_PYTHON ?= $(PYTHON)
@@ -105,7 +127,7 @@ acceptance:
 	USER_TOKEN="$$token" $(PYTHON_ENV) "$(PYTHON)" scripts/acceptance_check.py --base-url "$(COORDINATOR_URL)" $(if $(WEB_URL),--web-base-url "$(WEB_URL)",) $(ACCEPTANCE_PHASE_ARG) --expected-workers "$(EXPECTED_WORKERS)" --expected-worker-names "$(EXPECTED_WORKER_NAMES)" $(if $(EXPECTED_OFFLINE_WORKER_NAMES),--expected-offline-worker-names "$(EXPECTED_OFFLINE_WORKER_NAMES)",) $(if $(filter 1 true yes,$(REQUIRE_WORKERS_IN_TREE)),--require-expected-workers-in-tree,) $(if $(filter 1 true yes,$(REQUIRE_DIFFERENT_REGEN_MODEL)),--require-different-regen-model,) $(ACCEPTANCE_REQUIRE_NAMED_HTTPS_ARG) $(if $(filter 1 true yes,$(SKIP_WEB_CHECKS)),--skip-web-checks,) $(if $(filter 1 true yes,$(SKIP_SSE_CHECK)),--skip-sse-check,) $(if $(ACCEPTANCE_REPORT),--report-path "$(ACCEPTANCE_REPORT)",)
 
 local-cluster-check:
-	pnpm --dir web build
+	"$(PNPM)" --dir web build
 	$(PYTHON_ENV) "$(PYTHON)" scripts/local_cluster_check.py
 
 local-single-machine-check:
@@ -253,13 +275,13 @@ production-acceptance-sequence:
 
 bootstrap:
 	$(PYTHON_ENV) "$(PYTHON)" -m pip install -r requirements-dev.txt
-	pnpm --dir web install
+	"$(PNPM)" --dir web install $(PNPM_INSTALL_FLAGS)
 
 web-install:
-	pnpm --dir web install
+	"$(PNPM)" --dir web install $(PNPM_INSTALL_FLAGS)
 
 web-build:
-	pnpm --dir web build
+	"$(PNPM)" --dir web build
 
 restart-web:
 	launchctl unload "$$HOME/Library/LaunchAgents/com.dialectical.web.plist" 2>/dev/null || true
@@ -283,7 +305,7 @@ verify-worker-visible:
 	$(PYTHON_ENV) "$(PYTHON)" scripts/verify_worker_visible.py --base-url "$(COORDINATOR_URL)" --worker-name "$(WORKER_NAME)" --expected-status online --timeout "$(WORKER_VISIBLE_TIMEOUT)" --require-capabilities $(WORKER_REQUIRED_CAPABILITIES_ARG) $(WORKER_REJECT_NON_PRODUCTION_CAPABILITIES_ARG)
 
 install-services:
-	pnpm --dir web build
+	"$(PNPM)" --dir web build
 	mkdir -p "$$HOME/Library/LaunchAgents"
 	sed -e "s#__ROOT__#$(CURDIR)#g" -e "s#__PYTHON__#$(PYTHON)#g" -e "s#__PATH__#$(LAUNCHD_PATH)#g" -e "s#__PYTHON_DYLD_LIBRARY_PATH__#$(PYTHON_DYLD_LIBRARY_PATH)#g" deploy/launchd/coordinator.plist > "$$HOME/Library/LaunchAgents/com.dialectical.coordinator.plist"
 	sed -e "s#__ROOT__#$(CURDIR)#g" -e "s#__PYTHON__#$(PYTHON)#g" -e "s#__PNPM__#$(PNPM)#g" -e "s#__PATH__#$(LAUNCHD_PATH)#g" deploy/launchd/web.plist > "$$HOME/Library/LaunchAgents/com.dialectical.web.plist"

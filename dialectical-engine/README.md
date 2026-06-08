@@ -19,6 +19,14 @@ make dev
 ```
 
 On first coordinator boot the user bearer token is printed once. Paste it into `/new`, `/settings`, or `/admin/workers`. Local development enables the `mock-local` adapter so a full debate can complete without paid model CLIs.
+Single-shot debate creation on `/new` uses the local Codex CLI by default. The git-ignored `.env` file can keep this explicit:
+
+```bash
+DIALECTICAL_SINGLE_SHOT_PROVIDER=codex
+CODEX_COMMAND=codex
+```
+
+To call OpenAI directly instead, set `DIALECTICAL_SINGLE_SHOT_PROVIDER=openai`, `OPENAI_API_KEY=sk-...`, and optionally `OPENAI_MODEL=gpt-5.2`. The key is server-side only; do not use a `NEXT_PUBLIC_*` OpenAI key.
 `make dev` sets `DIALECTICAL_ENABLE_REAL_ADAPTERS=0` for Worker A by default; set it to `1` when you explicitly want local CLI/API adapters involved.
 For isolated smoke runs, `DIALECTICAL_DEV_COORDINATOR_PORT`, `DIALECTICAL_DEV_WEB_PORT`, and `DIALECTICAL_DEV_NEXT_PORT` can override the default ports without changing the normal `make dev` topology.
 `DIALECTICAL_DEV_HOME` can point the dev SQLite database and Worker A config at a temporary directory for isolated checks.
@@ -155,4 +163,4 @@ The tunnel routes `/api/*` to FastAPI on `:8000` and all other paths to the web 
 The installed web service also proxies same-origin API, OpenAPI, docs, and SSE routes to FastAPI while serving Next.js from an internal `:3001` upstream, so quick tunnels and local browser sessions can use one origin. Coordinator SSE streams keep a bounded per-debate event history, so subscribers and reconnecting clients receive the recent ordered event prefix before live events.
 The web client uses same-origin API calls in the browser by default, so a public tunnel host works without baking a domain into the Next.js bundle. Set `NEXT_PUBLIC_API_BASE` only when the web UI and coordinator are intentionally served from different origins.
 
-Public reads require no token. Writes, settings, and admin pages use the user bearer token stored in browser `localStorage`. Worker calls use per-worker bearer tokens stored in `~/.dialectical-worker/config.toml`.
+Public reads require no token. Debate creation, settings, and admin pages use the user bearer token stored in browser `localStorage`. Single-shot debate generation uses coordinator-side credentials or the local Codex CLI; the browser never receives provider secrets. Worker calls use per-worker bearer tokens stored in `~/.dialectical-worker/config.toml`.

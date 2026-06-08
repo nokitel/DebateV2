@@ -28,6 +28,13 @@ from app.services.orchestrator import (
     spawn_child_argument_jobs,
     try_claim_pending_job,
 )
+from app.services.single_shot import (
+    CodexCliDebateGenerator,
+    DebateGenerationResult,
+    OpenAIDebateGenerator,
+    create_single_shot_debate,
+    validate_single_shot_result,
+)
 from app.services.events import event_bus
 from app.services.prompts import render_prompt
 from app.services.routing import routing_engine
@@ -90,6 +97,140 @@ def test_mock_orchestration_completes_and_exports(db) -> None:
     assert "mock-local" in exported
     assert "## Synthesis" in exported
     assert "Cleaner transport." in exported
+
+
+def real_single_shot_result() -> DebateGenerationResult:
+    return DebateGenerationResult(
+        root_claim="Should cities ban cars downtown?",
+        pros=[
+            "Fewer cars can reduce collision risk for pedestrians.",
+            "Lower traffic volumes can improve local air quality.",
+            "Reclaimed street space can support public transport and walking.",
+        ],
+        cons=[
+            "Restrictions can reduce access for people who rely on cars.",
+            "Some businesses may lose customers who travel by car.",
+            "Traffic can be displaced into nearby neighborhoods.",
+        ],
+        strongest_pro="Fewer cars can reduce collision risk for pedestrians.",
+        strongest_con="Restrictions can reduce access for people who rely on cars.",
+        global_winner={"side": "pro", "reason": "The safety and air-quality benefits are broader."},
+        final_text="The strongest case favors a careful car ban with access exemptions.",
+        model_id="gpt-5.2",
+        tokens_in=123,
+        tokens_out=456,
+        created_at="2026-06-08T10:00:00+00:00",
+    )
+
+
+def test_single_shot_real_debate_completes_without_jobs(db) -> None:
+    debate = create_single_shot_debate(
+        db,
+        "Should cities ban cars downtown?",
+        generator=lambda topic: real_single_shot_result(),
+    )
+
+    assert debate.status == "complete"
+    assert debate.root_node_id
+    assert debate.completed_at
+    assert not db.scalars(select(Job)).all()
+
+    payload = debate.config["single_shot_result"]
+    assert payload["model_id"] == "gpt-5.2"
+    assert payload["tokens_in"] == 123
+    assert payload["tokens_out"] == 456
+    assert payload["created_at"]
+    assert payload["strongest_pro"] == "Fewer cars can reduce collision risk for pedestrians."
+    assert payload["strongest_con"] == "Restrictions can reduce access for people who rely on cars."
+    assert payload["global_winner"] == {"side": "pro", "reason": "The safety and air-quality benefits are broader."}
+    assert len(payload["pros"]) == 3
+    assert len(payload["cons"]) == 3
+
+    detail = debate_to_dict(db, debate)
+    assert detail["topic"] == "Should cities ban cars downtown?"
+    assert detail["tree"]["claim"] == "Should cities ban cars downtown?"
+    assert [child["node_type"] for child in detail["tree"]["children"]] == ["PRO", "PRO", "PRO", "CON", "CON", "CON"]
+    assert detail["models"] == ["gpt-5.2"]
+
+
+def test_single_shot_result_rejects_argument_count_outside_mvp_range() -> None:
+    valid = real_single_shot_result().model_dump()
+    valid["pros"] = ["Only one pro."]
+
+    try:
+        validate_single_shot_result(valid, model_id="gpt-5.2", tokens_in=1, tokens_out=1)
+    except ValueError as exc:
+        assert "pros" in str(exc)
+    else:
+        raise AssertionError("single-shot result with too few pros should fail")
+
+
+def test_single_shot_result_normalizes_plural_global_winner() -> None:
+    raw = real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})
+    raw["global_winner"] = "pros"
+
+    result = validate_single_shot_result(raw, model_id="codex-cli", tokens_in=1, tokens_out=1)
+
+    assert result.global_winner.side == "pro"
+
+
+def test_openai_debate_generator_extracts_json_and_usage(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {
+                "output_text": json.dumps(real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})),
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+
+    def fake_post(self, url, *, headers, json, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr("httpx.Client.post", fake_post)
+
+    result = OpenAIDebateGenerator(api_key="secret", model_id="gpt-5.2")("Should cities ban cars downtown?")
+
+    assert captured["url"] == "https://api.openai.com/v1/responses"
+    assert result.model_id == "gpt-5.2"
+    assert result.tokens_in == 10
+    assert result.tokens_out == 20
+    assert len(result.pros) == 3
+
+
+def test_codex_cli_debate_generator_runs_prompt_and_extracts_json(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    raw = real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})
+
+    class Completed:
+        stdout = f"Here is the result:\n{json.dumps(raw)}\n"
+        stderr = ""
+
+    def fake_run(command, *, cwd, input, capture_output, text, timeout, check):
+        captured["command"] = command
+        captured["cwd"] = cwd
+        captured["input"] = input
+        captured["timeout"] = timeout
+        return Completed()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = CodexCliDebateGenerator(command="codex", timeout_seconds=12)("Should cities ban cars downtown?")
+
+    assert captured["command"][0:2] == ["codex", "exec"]
+    assert "--sandbox" in captured["command"]
+    assert captured["command"][-1] == "-"
+    assert "Should cities ban cars downtown?" in captured["input"]
+    assert result.model_id == "codex-cli"
+    assert result.tokens_in > 0
+    assert result.tokens_out > 0
+    assert len(result.cons) == 3
 
 
 def test_markdown_export_includes_archived_generation_history(db) -> None:

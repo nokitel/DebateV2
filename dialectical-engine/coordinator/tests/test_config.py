@@ -18,6 +18,10 @@ def clear_config_env(monkeypatch) -> None:
         "DIALECTICAL_WORKER_OFFLINE_SECONDS",
         "DIALECTICAL_JOB_FALLBACK_SECONDS",
         "DIALECTICAL_GROK_MONTHLY_CAP_USD",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "DIALECTICAL_SINGLE_SHOT_PROVIDER",
+        "CODEX_COMMAND",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -86,3 +90,25 @@ def test_default_routing_is_not_shared_between_settings_loads(tmp_path: Path, mo
 
     assert "mutated-model" not in second.routing["proposer"]["pool"]
     assert "mutated-model" not in DEFAULT_ROUTING["proposer"]["pool"]
+
+
+def test_load_settings_reads_openai_values_from_env_file(tmp_path: Path, monkeypatch) -> None:
+    clear_config_env(monkeypatch)
+    env_path = tmp_path / ".env"
+    env_path.write_text('OPENAI_API_KEY="sk-test"\nOPENAI_MODEL=gpt-5.5\n', encoding="utf-8")
+    monkeypatch.setattr("app.core.config.DEFAULT_ENV_PATH", env_path)
+
+    settings = load_settings(tmp_path / "missing.toml")
+
+    assert settings.openai_api_key == "sk-test"
+    assert settings.openai_model == "gpt-5.5"
+
+
+def test_load_settings_defaults_single_shot_to_codex_cli(tmp_path: Path, monkeypatch) -> None:
+    clear_config_env(monkeypatch)
+    monkeypatch.setattr("app.core.config.DEFAULT_ENV_PATH", tmp_path / "missing.env")
+
+    settings = load_settings(tmp_path / "missing.toml")
+
+    assert settings.single_shot_provider == "codex"
+    assert settings.codex_command == "codex"

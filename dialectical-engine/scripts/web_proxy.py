@@ -5,6 +5,7 @@ import atexit
 import http.client
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import threading
@@ -61,7 +62,11 @@ class WebProxy:
         self.next_process: subprocess.Popen[bytes] | None = None
 
     def start_next(self) -> None:
-        self.next_process = subprocess.Popen(self.next_command(), cwd=self.root, env=self.next_env())
+        self.next_process = subprocess.Popen(
+            self.next_command(),
+            cwd=self.next_cwd(),
+            env=self.next_env(),
+        )
 
     def next_env(self) -> dict[str, str]:
         env = os.environ.copy()
@@ -76,6 +81,18 @@ class WebProxy:
         return env
 
     def next_command(self) -> list[str]:
+        local_next = self.local_next_bin()
+        if os.name == "nt" and local_next.exists():
+            return [
+                "cmd.exe",
+                "/C",
+                str(local_next),
+                self.next_mode,
+                "-H",
+                self.next_host,
+                "-p",
+                str(self.next_port),
+            ]
         return [
             self.pnpm,
             "--dir",
@@ -88,6 +105,15 @@ class WebProxy:
             "-p",
             str(self.next_port),
         ]
+
+    def next_cwd(self) -> Path:
+        if os.name == "nt" and self.local_next_bin().exists():
+            return self.web_dir
+        return self.root
+
+    def local_next_bin(self) -> Path:
+        suffix = ".CMD" if os.name == "nt" else ""
+        return self.web_dir / "node_modules" / ".bin" / f"next{suffix}"
 
     def stop_next(self) -> None:
         proc = self.next_process
@@ -109,7 +135,7 @@ class WebProxy:
             try:
                 conn = http.client.HTTPConnection(self.next_host, self.next_port, timeout=1)
                 conn.request("HEAD", "/")
-                conn.getresponse().read()
+                conn.getresponse()
                 conn.close()
                 return
             except OSError:
@@ -255,7 +281,7 @@ def default_launchd_path() -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the Dialectical web UI behind a same-origin API proxy")
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
-    parser.add_argument("--pnpm", default=os.getenv("PNPM", "pnpm"))
+    parser.add_argument("--pnpm", default=os.getenv("PNPM") or shutil.which("pnpm") or shutil.which("pnpm.cmd") or "pnpm")
     parser.add_argument("--next-host", default="127.0.0.1")
     parser.add_argument("--next-port", type=int, default=3001)
     parser.add_argument("--coordinator-host", default="127.0.0.1")

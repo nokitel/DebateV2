@@ -62,11 +62,31 @@ export type ActiveSynthesis = {
   is_streaming?: boolean;
 };
 
+export type SingleShotResult = {
+  pros: string[];
+  cons: string[];
+  strongest_pro: string;
+  strongest_con: string;
+  global_winner: {
+    side: "pro" | "con" | "balanced";
+    reason: string;
+  };
+  final_text: string;
+  model_id: string;
+  tokens_in: number;
+  tokens_out: number;
+  created_at: string;
+};
+
+export type DebateConfig = Record<string, unknown> & {
+  single_shot_result?: SingleShotResult | null;
+};
+
 export type DebateDetail = {
   id: string;
   topic: string;
   status: string;
-  config: Record<string, unknown>;
+  config: DebateConfig;
   root_node_id: string | null;
   synthesis_id: string | null;
   created_at: string;
