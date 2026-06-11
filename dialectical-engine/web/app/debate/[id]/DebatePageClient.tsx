@@ -75,6 +75,13 @@ function activeSynthesisDraft(debate: DebateDetail | null): SynthesisDraft | nul
   };
 }
 
+function provenanceLabel(provenance: Record<string, unknown>): string {
+  const model = typeof provenance.model_id === "string" ? provenance.model_id : "";
+  const worker = typeof provenance.worker_id === "string" ? provenance.worker_id : "";
+  const prompt = typeof provenance.prompt_id === "string" ? provenance.prompt_id : "";
+  return [model, worker, prompt].filter(Boolean).join(" - ");
+}
+
 function isSingleShotResult(value: unknown): value is SingleShotResult {
   if (!value || typeof value !== "object") return false;
   const result = value as Partial<SingleShotResult>;
@@ -454,6 +461,64 @@ export default function DebatePageClient({
                 <li key={`${index}-${argument}`}>{argument}</li>
               ))}
             </ul>
+          </section>
+        </div>
+      ) : null}
+      {debate.analyzer_runs.length ||
+      debate.selected_skills.length ||
+      debate.selected_agents.length ||
+      debate.agent_runs.length ? (
+        <div className="singleShotPanel" aria-label="Dialectical workspace artifacts">
+          <section>
+            <h2>Analyzers</h2>
+            <div className="artifactGrid">
+              {debate.analyzer_runs.map((run) => (
+                <article key={run.id} className="artifactItem">
+                  <div className="artifactHeader">
+                    <h3>{run.analyzer_type}</h3>
+                    <span className="statusPill">{run.status}</span>
+                  </div>
+                  <p>{run.output.findings?.[0] || "No finding recorded."}</p>
+                  <p className="muted">{provenanceLabel(run.provenance)}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+          <section>
+            <h2>Agent Breakdown</h2>
+            {debate.agent_runs.map((run) => (
+              <article key={run.id} className="artifactItem agentOutputPanel">
+                <div className="artifactHeader">
+                  <h3>{run.agent_name || run.role || run.id}</h3>
+                  <span className="statusPill">{run.status}</span>
+                </div>
+                <p>{run.summary || run.agent.description || "No summary recorded."}</p>
+                {run.skills_used.length ? (
+                  <p className="muted">
+                    Skills: {run.skills_used.map((skill) => skill.name || skill.id).join(", ")}
+                  </p>
+                ) : null}
+                <div className="argumentColumns">
+                  <div>
+                    <h4>Pros ({run.pros.length})</h4>
+                    <ol>
+                      {run.pros.map((argument) => (
+                        <li key={argument}>{argument}</li>
+                      ))}
+                    </ol>
+                  </div>
+                  <div>
+                    <h4>Cons ({run.cons.length})</h4>
+                    <ol>
+                      {run.cons.map((argument) => (
+                        <li key={argument}>{argument}</li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+                <p className="muted">{provenanceLabel(run.provenance)}</p>
+              </article>
+            ))}
           </section>
         </div>
       ) : null}

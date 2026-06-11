@@ -657,7 +657,11 @@ def render_job_payload(db: Session, job: Job) -> dict[str, Any]:
         raise ValueError("Debate not found")
     node = db.get(Node, job.node_id) if job.node_id else None
     claim = node.claim if node else debate.topic
-    if job.job_type == "synthesize":
+    if job.job_type.startswith("v2_"):
+        from app.services.dialectical_v2 import render_v2_job_prompt
+
+        system, user = render_v2_job_prompt(db, job)
+    elif job.job_type == "synthesize":
         context = json.dumps(debate_to_dict(db, debate), default=str)
         system, user = render_prompt("synthesizer", debate.topic, debate.topic, 0, context=context)
     else:
@@ -680,11 +684,25 @@ def render_job_payload(db: Session, job: Job) -> dict[str, Any]:
 
 
 async def publish_job_started(db: Session, job: Job) -> None:
-    if job.job_type == "synthesize":
+    if job.job_type in {"synthesize", "v2_synthesize"}:
         await event_bus.publish(
             job.debate_id,
             "synthesis_started",
             {"debate_id": job.debate_id, "model_id": job.required_model, "worker_id": job.worker_id},
+        )
+        return
+    if job.job_type.startswith("v2_"):
+        await event_bus.publish(
+            job.debate_id,
+            "artifact_started",
+            {
+                "debate_id": job.debate_id,
+                "job_id": job.id,
+                "job_type": job.job_type,
+                "model_id": job.required_model,
+                "worker_id": job.worker_id,
+                "role": job.required_role,
+            },
         )
         return
     await event_bus.publish(
@@ -722,8 +740,14 @@ async def append_stream_delta(db: Session, job: Job, delta: str, offset: int | N
     job.status = "running"
     job.deadline = make_deadline()
     commit_write(db)
-    if job.job_type == "synthesize":
+    if job.job_type in {"synthesize", "v2_synthesize"}:
         await event_bus.publish(job.debate_id, "synthesis_token", {"debate_id": job.debate_id, "delta": delta})
+    elif job.job_type.startswith("v2_"):
+        await event_bus.publish(
+            job.debate_id,
+            "artifact_token",
+            {"debate_id": job.debate_id, "job_id": job.id, "job_type": job.job_type, "delta": delta},
+        )
     else:
         await event_bus.publish(job.debate_id, "node_token", {"node_id": job.node_id, "delta": delta})
 
@@ -807,6 +831,10 @@ async def complete_job(db: Session, job: Job, result: Any, metadata: dict[str, A
         commit_write(db)
         await event_bus.publish(job.debate_id, "synthesis_complete", {"synthesis": payload})
         await event_bus.publish(job.debate_id, "debate_complete", {"debate_id": debate.id})
+    elif job.job_type.startswith("v2_"):
+        from app.services.dialectical_v2 import complete_v2_worker_job
+
+        await complete_v2_worker_job(db, job, extract_jsonish(result), metadata)
     else:
         raise ValueError(f"Unsupported job type {job.job_type}")
 
@@ -831,12 +859,12 @@ async def fail_job(db: Session, job: Job, reason: str, retryable: bool) -> None:
         debate = db.get(Debate, job.debate_id)
         if debate:
             debate.status = "failed"
-    if job.node_id:
+    if job.node_id and not job.job_type.startswith("v2_"):
         node = db.get(Node, job.node_id)
         if node:
             node.status = "pending" if retryable else "failed"
     commit_write(db)
-    if job.node_id:
+    if job.node_id and not job.job_type.startswith("v2_"):
         await event_bus.publish(job.debate_id, "node_failed", {"node_id": job.node_id, "reason": reason, "retry_in_s": 5})
     else:
         await event_bus.publish(job.debate_id, "error", {"scope": job.job_type, "message": reason, "retry_in_s": 5})

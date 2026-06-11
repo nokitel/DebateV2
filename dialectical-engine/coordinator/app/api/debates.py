@@ -15,8 +15,9 @@ from app.core.auth import AuthContext, require_user_token
 from app.core.db import get_db
 from app.models.entities import Debate, Generation, Node, Synthesis
 from app.services.events import event_bus
+from app.services.dialectical_v2 import create_dialectical_debate
 from app.services.orchestrator import archive_debate as archive_debate_state
-from app.services.orchestrator import create_debate, markdown_export
+from app.services.orchestrator import markdown_export
 from app.services.serialization import debate_to_dict, iso
 from app.services.single_shot import (
     DebateGenerationResult,
@@ -94,7 +95,7 @@ def post_debate(
         if payload.config and payload.config.get("mode") == SINGLE_SHOT_MODE:
             debate = create_single_shot_debate(db, payload.topic, generator=single_shot_generator)
         else:
-            debate = create_debate(db, payload.topic, payload.config)
+            debate = create_dialectical_debate(db, payload.topic, payload.config)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except (RuntimeError, httpx.HTTPError, subprocess.SubprocessError) as exc:

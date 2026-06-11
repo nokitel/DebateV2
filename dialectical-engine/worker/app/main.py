@@ -15,6 +15,10 @@ from app.client import CoordinatorClient
 from app.config import load_config
 
 
+class StructuredOutputError(ValueError):
+    pass
+
+
 def extract_json_object(text: str) -> dict[str, Any]:
     decoder = json.JSONDecoder()
     for index, char in enumerate(text):
@@ -26,13 +30,52 @@ def extract_json_object(text: str) -> dict[str, Any]:
             continue
         if isinstance(payload, dict):
             return payload
-    raise ValueError("Model output did not contain a valid JSON object")
+    raise StructuredOutputError("Model output did not contain a valid JSON object")
 
 
 def parse_result(job: dict[str, Any], text: str) -> Any:
-    if job["job_type"] in {"decompose", "synthesize"}:
+    if job["job_type"] in {
+        "decompose",
+        "synthesize",
+        "v2_skill_create",
+        "v2_agent_create",
+        "v2_agent_argument",
+        "v2_plan",
+        "v2_pov",
+        "v2_agent_run",
+        "v2_synthesize",
+    }:
         return extract_json_object(text)
     return {"argument": text.strip()}
+
+
+def enrich_v2_result(job: dict[str, Any], result: Any, worker_id: str | None) -> Any:
+    if not isinstance(result, dict):
+        return result
+    job_type = str(job.get("job_type") or "")
+    if not job_type.startswith("v2_"):
+        return result
+    enriched = dict(result)
+    job_id = str(job.get("id") or "")
+    model_id = str(job.get("required_model") or "")
+    worker = str(worker_id or "")
+    if job_type in {"v2_skill_create", "v2_agent_create"}:
+        enriched["provenance"] = {
+            **(enriched.get("provenance") if isinstance(enriched.get("provenance"), dict) else {}),
+            "created_by_model": model_id,
+            "created_by_worker_id": worker,
+            "creation_prompt_id": f"prompt-{job_id}",
+            "job_id": job_id,
+        }
+    else:
+        enriched["provenance"] = {
+            **(enriched.get("provenance") if isinstance(enriched.get("provenance"), dict) else {}),
+            "model_id": model_id,
+            "worker_id": worker,
+            "prompt_id": f"prompt-{job_id}",
+            "job_id": job_id,
+        }
+    return enriched
 
 
 def estimate_tokens(*parts: str) -> int:
@@ -67,6 +110,12 @@ def stale_job_coordinator_error(exc: Exception) -> bool:
     except Exception:  # noqa: BLE001 - best-effort classification for stale job responses.
         detail = exc.response.text
     return detail.startswith("Job ") or "cannot be mutated" in detail
+
+
+def nonretryable_coordinator_completion_error(exc: Exception) -> bool:
+    if not isinstance(exc, httpx.HTTPStatusError):
+        return False
+    return exc.response.status_code == 400 and "/complete" in str(exc.request.url)
 
 
 async def wait_or_stop(stop: asyncio.Event, seconds: float) -> None:
@@ -136,13 +185,22 @@ async def handle_job_with_heartbeats(
         await client.stream_chunks(job["id"], chunks())
         text = "".join(output)
         result = parse_result(job, text)
+        client_config = getattr(client, "config", None)
+        result = enrich_v2_result(job, result, getattr(client_config, "worker_id", None))
+        if str(job.get("job_type") or "").startswith("v2_"):
+            print(f"V2 result for {job['id']}: {json.dumps(result, default=str)[:2000]}", flush=True)
         await client.complete(job["id"], result, started_at, tokens_in, estimate_tokens(text))
     except Exception as exc:
         if stale_job_coordinator_error(exc):
             print(f"Coordinator no longer accepts job {job['id']}: {exc}", flush=True)
             return
         try:
-            await client.fail(job["id"], str(exc), retryable=True)
+            await client.fail(
+                job["id"],
+                str(exc),
+                retryable=not isinstance(exc, StructuredOutputError)
+                and not nonretryable_coordinator_completion_error(exc),
+            )
         except Exception as fail_exc:
             if stale_job_coordinator_error(fail_exc):
                 print(f"Coordinator no longer accepts failure for job {job['id']}: {fail_exc}", flush=True)

@@ -5,6 +5,7 @@
 .venv/
 .venv*/
 .dialectical-dev/
+node_modules/
 __pycache__/
 *.py[cod]
 

@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from pathlib import Path
 
 import httpx
 import pytest
 
 from app.adapters import ollama as ollama_module
+from app.adapters import codex_cli as codex_cli_module
 from app.adapters import gemini_api as gemini_api_module
 from app.adapters import gemini_cli as gemini_cli_module
 from app.adapters import lmstudio as lmstudio_module
@@ -30,9 +32,11 @@ from app.config import WorkerConfig
 from app.main import (
     estimate_tokens,
     extract_json_object,
+    enrich_v2_result,
     handle_job,
     handle_job_with_heartbeats,
     parse_result,
+    nonretryable_coordinator_completion_error,
     register_with_backoff,
     stale_job_coordinator_error,
 )
@@ -62,6 +66,23 @@ def test_mock_adapter_generates_argument() -> None:
     assert "plausible" in adapter.generate("You are supporting", "<claim>Ban cars</claim>")
 
 
+def test_mock_adapter_matches_current_decomposer_prompt_contract() -> None:
+    adapter = MockAdapter(token_delay_seconds=0)
+    system = (
+        "You are decomposing a debate topic into a concise debate tree seed.\n"
+        "Return JSON only:\n"
+        '{"root_claim":"clear restatement","children":[]}'
+    )
+
+    result = parse_result(
+        {"job_type": "decompose"},
+        adapter.generate(system, "<topic>Should 16 year old children vote?</topic>"),
+    )
+
+    assert result["root_claim"] == "Should 16 year old children vote?"
+    assert result["children"][0]["node_type"] == "PRO"
+
+
 def test_mock_adapter_model_id_can_be_named() -> None:
     assert MockAdapter("mock-alpha").model_id == "mock-alpha"
 
@@ -86,6 +107,16 @@ def test_parse_result_accepts_fenced_json_with_preamble() -> None:
     }
 
 
+@pytest.mark.parametrize("job_type", ["v2_plan", "v2_agent_run", "v2_synthesize"])
+def test_parse_result_accepts_planner_first_v2_json(job_type: str) -> None:
+    result = parse_result(
+        {"job_type": job_type},
+        'Model notes before JSON:\n{"agent_run_id":"run-1","steps":[{"skill_id":"skill-1"}]}',
+    )
+
+    assert result == {"agent_run_id": "run-1", "steps": [{"skill_id": "skill-1"}]}
+
+
 def test_extract_json_object_rejects_missing_object() -> None:
     with pytest.raises(ValueError, match="valid JSON object"):
         extract_json_object("no structured output here")
@@ -95,6 +126,50 @@ def test_estimate_tokens_uses_text_length_for_long_words() -> None:
     assert estimate_tokens("") == 0
     assert estimate_tokens("one two three") == 4
     assert estimate_tokens("x" * 80) == 20
+
+
+def test_enrich_v2_result_stamps_creation_provenance() -> None:
+    job = {"id": "job-1", "job_type": "v2_skill_create", "required_model": "codex-gpt-5.5"}
+    result = {"kind": "skill", "provenance": {"created_by_model": "wrong"}}
+
+    enriched = enrich_v2_result(job, result, "worker-1")
+
+    assert enriched["provenance"] == {
+        "created_by_model": "codex-gpt-5.5",
+        "created_by_worker_id": "worker-1",
+        "creation_prompt_id": "prompt-job-1",
+        "job_id": "job-1",
+    }
+
+
+def test_enrich_v2_result_stamps_runtime_provenance() -> None:
+    job = {"id": "job-2", "job_type": "v2_agent_argument", "required_model": "codex-gpt-5.5"}
+    result = {"pros": ["a"] * 5, "cons": ["b"] * 5}
+
+    enriched = enrich_v2_result(job, result, "worker-1")
+
+    assert enriched["provenance"] == {
+        "model_id": "codex-gpt-5.5",
+        "worker_id": "worker-1",
+        "prompt_id": "prompt-job-2",
+        "job_id": "job-2",
+    }
+
+
+@pytest.mark.parametrize("job_type", ["v2_plan", "v2_agent_run", "v2_synthesize"])
+def test_enrich_v2_result_stamps_planner_first_provenance_generically(job_type: str) -> None:
+    job = {"id": "job-3", "job_type": job_type, "required_model": "codex-gpt-5.5"}
+    result = {"payload": {"ok": True}, "provenance": {"source": "model"}}
+
+    enriched = enrich_v2_result(job, result, "worker-1")
+
+    assert enriched["provenance"] == {
+        "source": "model",
+        "model_id": "codex-gpt-5.5",
+        "worker_id": "worker-1",
+        "prompt_id": "prompt-job-3",
+        "job_id": "job-3",
+    }
 
 
 def test_cli_adapter_commands() -> None:
@@ -110,12 +185,119 @@ def test_cli_adapter_commands() -> None:
     ]
     codex_command = CodexCliAdapter().command("sys", "user", 10)
     assert codex_command[:5] == ["codex", "exec", "--skip-git-repo-check", "--sandbox", "workspace-write"]
+    assert "--output-schema" not in codex_command
     assert "--model" in codex_command
     assert "gpt-5.5" in codex_command
+    assert codex_command[-1] == "-"
+    assert "sys\n\nuser" in CodexCliAdapter().stdin_text("sys", "user", 10)
     assert "--full-auto" not in codex_command
     assert "-q" not in codex_command
     assert GeminiCliAdapter().command("sys", "user", 10)[:3] == ["gemini", "-m", "gemini-2.5-flash"]
     assert GrokCliAdapter().command("sys", "user", 10)[0] == "grok"
+
+
+def test_codex_v2_planner_command_uses_strict_output_schema() -> None:
+    command = CodexCliAdapter().command(
+        "You are a Codex-backed Dialectical Engine V2 artifact worker.",
+        'You are planning a Dialectical Engine debate. Required shape: {"agents":[],"skills":[]}',
+        800,
+    )
+
+    assert "--output-schema" in command
+    schema_path = command[command.index("--output-schema") + 1]
+    assert schema_path.endswith("codex_v2_planner.schema.json")
+    assert command.index("--output-schema") < command.index("--model")
+    assert command[-1] == "-"
+
+
+def test_codex_v2_pov_command_uses_strict_output_schema() -> None:
+    command = CodexCliAdapter().command(
+        "You are a Codex-backed Dialectical Engine V2 POV worker.",
+        'Generate Scientific POV. Required shape: {"title":"...","content":"...","strongest_pro":{},"strongest_con":{}}',
+        800,
+    )
+
+    assert "--output-schema" in command
+    schema_path = command[command.index("--output-schema") + 1]
+    assert schema_path.endswith("codex_v2_pov.schema.json")
+    assert command[command.index("--model") + 1] == "gpt-5.5"
+    assert command[-1] == "-"
+
+
+def test_codex_v2_synthesis_schema_has_no_optional_properties() -> None:
+    schema = json.loads(codex_cli_module.CODEX_V2_SYNTHESIS_SCHEMA.read_text(encoding="utf-8"))
+
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(schema["properties"])
+    assert "contribution_summary" not in schema["properties"]
+
+
+def test_codex_command_writes_last_message_file() -> None:
+    adapter = CodexCliAdapter()
+    command = adapter.command("sys", "user", 10)
+
+    assert "--output-last-message" in command
+    output_path = command[command.index("--output-last-message") + 1]
+    assert output_path.endswith(".json")
+    assert command.index("--output-last-message") < command.index("--model")
+
+
+def test_codex_command_can_include_wrapper_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODEX_COMMAND", "python -m codexshim")
+
+    codex_command = CodexCliAdapter().command("sys", "user", 10)
+
+    assert codex_command[:4] == ["python", "-m", "codexshim", "exec"]
+
+
+@pytest.mark.asyncio
+async def test_codex_health_probes_spawnable_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, tuple[str, ...]] = {}
+
+    async def fake_exec(*command: str, stdout, stderr) -> FakeCliProcess:
+        captured["command"] = command
+        assert stdout == asyncio.subprocess.PIPE
+        assert stderr == asyncio.subprocess.PIPE
+        return FakeCliProcess(stdout=b"codex 1.0\n", returncode=0)
+
+    monkeypatch.setattr(subprocess_base.shutil, "which", lambda executable: f"/usr/local/bin/{executable}")
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", fake_exec)
+
+    assert await CodexCliAdapter("python -m codexshim").health_check()
+    assert captured["command"] == ("python", "-m", "codexshim", "--version")
+
+
+@pytest.mark.asyncio
+async def test_codex_health_accepts_absolute_wrapper_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    command_path = "C:\\tools\\codex-cli.cmd"
+
+    async def fake_exec(*command: str, stdout, stderr) -> FakeCliProcess:
+        assert command == (command_path, "--version")
+        assert stdout == asyncio.subprocess.PIPE
+        assert stderr == asyncio.subprocess.PIPE
+        return FakeCliProcess(stdout=b"codex 1.0\n", returncode=0)
+
+    monkeypatch.setattr(subprocess_base.shutil, "which", lambda executable: None)
+    monkeypatch.setattr(subprocess_base.os.path, "isfile", lambda path: path == command_path)
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", fake_exec)
+
+    assert await CodexCliAdapter(command_path).health_check()
+
+
+@pytest.mark.asyncio
+async def test_codex_health_rejects_unspawnable_windowsapps_alias(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_exec(*command: str, stdout, stderr) -> FakeCliProcess:
+        del command, stdout, stderr
+        raise PermissionError("[WinError 5] Access is denied")
+
+    monkeypatch.setattr(
+        subprocess_base.shutil,
+        "which",
+        lambda executable: f"C:\\Program Files\\WindowsApps\\OpenAI.Codex\\{executable}.exe",
+    )
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", fake_exec)
+
+    assert not await CodexCliAdapter().health_check()
 
 
 def test_claude_stream_json_parser() -> None:
@@ -166,6 +348,81 @@ class FakeCliProcess:
 
     async def wait(self) -> int:
         return self.returncode
+
+
+class FakeAsyncPipe:
+    def __init__(self, payload: bytes = b"") -> None:
+        self.payload = payload
+
+    def __aiter__(self):
+        self._lines = iter(self.payload.splitlines(keepends=True))
+        return self
+
+    async def __anext__(self) -> bytes:
+        try:
+            return next(self._lines)
+        except StopIteration:
+            raise StopAsyncIteration
+
+    async def read(self) -> bytes:
+        return self.payload
+
+
+class FakeStdin:
+    def write(self, payload: bytes) -> None:
+        self.payload = payload
+
+    async def drain(self) -> None:
+        return None
+
+    def close(self) -> None:
+        return None
+
+
+class FakeStreamingProcess:
+    def __init__(self, stdout: bytes = b"", stderr: bytes = b"", returncode: int = 0) -> None:
+        self.stdout = FakeAsyncPipe(stdout)
+        self.stderr = FakeAsyncPipe(stderr)
+        self.returncode = returncode
+        self.stdin = FakeStdin()
+
+    async def wait(self) -> int:
+        return self.returncode
+
+
+@pytest.mark.asyncio
+async def test_codex_stream_reads_last_message_when_stdout_empty(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    expected = {"title": "Synthesis", "content": "No winner.", "tensions": [], "agreements": [], "evidence_gaps": [], "key_takeaways": []}
+
+    async def fake_exec(*command: str, stdin, stdout, stderr, env=None) -> FakeStreamingProcess:
+        del stdin, stdout, stderr, env
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_text(json.dumps(expected), encoding="utf-8")
+        return FakeStreamingProcess(stdout=b"", returncode=0)
+
+    monkeypatch.setattr(codex_cli_module.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", fake_exec)
+
+    chunks = [chunk async for chunk in CodexCliAdapter().stream("sys", '"evidence_gaps"', 100)]
+
+    assert "".join(chunks) == json.dumps(expected)
+
+
+@pytest.mark.asyncio
+async def test_subprocess_stream_raises_stderr_when_process_exits_zero_without_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_exec(*command: str, stdin, stdout, stderr, env=None) -> FakeStreamingProcess:
+        del command, stdin, stdout, stderr, env
+        return FakeStreamingProcess(stdout=b"", stderr=b"network unavailable", returncode=0)
+
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", fake_exec)
+
+    with pytest.raises(RuntimeError, match="network unavailable"):
+        [chunk async for chunk in CodexCliAdapter().stream("sys", "user", 100)]
 
 
 def grok_help_process(help_text: str, returncode: int = 0):
@@ -568,8 +825,15 @@ async def test_detect_adapters_respects_allowed_models(monkeypatch: pytest.Monke
     async def no_ollama_models() -> list[str]:
         return []
 
+    async def healthy_codex_probe(*command: str, stdout, stderr) -> FakeCliProcess:
+        assert command == ("codex", "--version")
+        assert stdout == asyncio.subprocess.PIPE
+        assert stderr == asyncio.subprocess.PIPE
+        return FakeCliProcess(stdout=b"codex 1.0\n", returncode=0)
+
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setattr(subprocess_base.shutil, "which", lambda executable: f"/usr/local/bin/{executable}")
+    monkeypatch.setattr(codex_cli_module.asyncio, "create_subprocess_exec", healthy_codex_probe)
     monkeypatch.setattr("app.capabilities.discover_ollama_models", no_ollama_models)
 
     adapters = await detect_adapters(
@@ -612,6 +876,15 @@ class RecordingClient:
 
     async def heartbeat(self, capabilities) -> None:
         self.heartbeats.append(list(capabilities))
+
+
+class RecordingFailureClient(RecordingClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.failure: dict[str, object] | None = None
+
+    async def fail(self, job_id, reason, retryable=True) -> None:
+        self.failure = {"job_id": job_id, "reason": reason, "retryable": retryable}
 
 
 def coordinator_http_error(status_code: int, detail: str) -> httpx.HTTPStatusError:
@@ -682,10 +955,25 @@ class FailingAdapter:
         yield ""  # pragma: no cover - keeps this as an async generator.
 
 
+class InvalidJsonAdapter:
+    async def stream(self, system: str, user: str, max_tokens: int):
+        del system, user, max_tokens
+        yield "This is not JSON."
+
+
 def test_stale_job_error_classification_does_not_mask_auth_failures() -> None:
     assert stale_job_coordinator_error(coordinator_http_error(404, "Job not found"))
     assert stale_job_coordinator_error(coordinator_http_error(409, "Job is complete and cannot be mutated"))
     assert not stale_job_coordinator_error(coordinator_http_error(403, "Invalid worker token"))
+
+
+def test_completion_400_is_nonretryable_contract_error() -> None:
+    request = httpx.Request("POST", "http://coordinator/api/jobs/job-1/complete")
+    response = httpx.Response(400, request=request, json={"detail": "bad contract"})
+    exc = httpx.HTTPStatusError("400 Bad Request", request=request, response=response)
+
+    assert nonretryable_coordinator_completion_error(exc)
+    assert not nonretryable_coordinator_completion_error(coordinator_http_error(500, "server unhappy"))
 
 
 @pytest.mark.asyncio
@@ -735,6 +1023,24 @@ async def test_handle_job_ignores_stale_fail_rejection_after_adapter_error() -> 
     }
 
     await handle_job(client, {"failing": FailingAdapter()}, job)
+
+
+@pytest.mark.asyncio
+async def test_handle_job_marks_malformed_structured_output_nonretryable() -> None:
+    client = RecordingFailureClient()
+    job = {
+        "id": "job-1",
+        "job_type": "decompose",
+        "required_model": "invalid-json",
+        "prompt": {"system": "Return JSON only", "user": "<topic>Vote?</topic>", "max_tokens": 20},
+    }
+
+    await handle_job(client, {"invalid-json": InvalidJsonAdapter()}, job)
+
+    assert client.failure is not None
+    assert client.failure["job_id"] == "job-1"
+    assert client.failure["retryable"] is False
+    assert "valid JSON object" in str(client.failure["reason"])
 
 
 @pytest.mark.asyncio
@@ -829,3 +1135,30 @@ async def test_coordinator_client_stream_chunks_retries_with_offsets() -> None:
         {"delta": "hello world", "offset": 0},
         {"delta": "!", "offset": 11},
     ]
+
+
+@pytest.mark.asyncio
+async def test_coordinator_client_truncates_failure_reason_to_api_limit() -> None:
+    calls: list[dict[str, object]] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content.decode())
+        calls.append(payload)
+        assert len(payload["reason"]) == 2000
+        return httpx.Response(200, request=request, json={"status": "queued"})
+
+    client = CoordinatorClient(
+        WorkerConfig(
+            coordinator_url="http://coordinator",
+            worker_id="worker-1",
+            worker_token="worker-token",
+        )
+    )
+    await client.client.aclose()
+    client.client = httpx.AsyncClient(base_url="http://coordinator", transport=httpx.MockTransport(handler))
+    try:
+        await client.fail("job-1", "x" * 5000, retryable=True)
+    finally:
+        await client.aclose()
+
+    assert calls == [{"reason": "x" * 2000, "retryable": True}]

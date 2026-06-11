@@ -43,7 +43,7 @@ def build_process_specs(
     python: str = sys.executable,
     environ: dict[str, str] | None = None,
 ) -> list[ProcessSpec]:
-    environ = environ or os.environ
+    environ = os.environ if environ is None else environ
     dev_home = Path(environ.get("DIALECTICAL_DEV_HOME") or root / ".dialectical-dev").expanduser()
     coordinator_port = int_env(environ, "DIALECTICAL_DEV_COORDINATOR_PORT", 8000)
     public_web_port = int_env(environ, "DIALECTICAL_DEV_WEB_PORT", 3000)
@@ -55,6 +55,28 @@ def build_process_specs(
     coordinator_args = [python, "-m", "uvicorn", "app.main:app", "--port", str(coordinator_port)]
     if enabled_env(environ, "DIALECTICAL_DEV_RELOAD", os.name != "nt"):
         coordinator_args.insert(4, "--reload")
+    enable_mock = environ.get("DIALECTICAL_ENABLE_MOCK", "0")
+    enable_real_adapters = environ.get("DIALECTICAL_ENABLE_REAL_ADAPTERS", "1")
+    worker_env = {
+        "DIALECTICAL_WORKER_CONFIG": str(dev_home / "worker.toml"),
+        "DIALECTICAL_COORDINATOR_URL": coordinator_url,
+        "DIALECTICAL_USER_TOKEN": environ.get("DIALECTICAL_USER_TOKEN", DEFAULT_USER_TOKEN),
+        "DIALECTICAL_WORKER_NAME": environ.get("DIALECTICAL_WORKER_NAME", "mac-mini"),
+        "DIALECTICAL_ENABLE_MOCK": enable_mock,
+        "DIALECTICAL_ENABLE_REAL_ADAPTERS": enable_real_adapters,
+        **{
+            key: environ[key]
+            for key in ("DIALECTICAL_ALLOWED_MODELS", "DIALECTICAL_MOCK_MODELS", "CODEX_COMMAND")
+            if environ.get(key)
+        },
+    }
+    if enabled_env(worker_env, "DIALECTICAL_ENABLE_REAL_ADAPTERS", False) and not enabled_env(
+        worker_env, "DIALECTICAL_ENABLE_MOCK", True
+    ):
+        worker_env.setdefault("DIALECTICAL_ALLOWED_MODELS", "codex-gpt-5.5")
+        local_codex = (root / "scripts" / "codex-cli.cmd").resolve()
+        if local_codex.exists():
+            worker_env.setdefault("CODEX_COMMAND", str(local_codex))
     return [
         ProcessSpec(
             "coordinator",
@@ -69,14 +91,7 @@ def build_process_specs(
             "worker-a",
             [python, "-m", "app.main"],
             root / "worker",
-            {
-                "DIALECTICAL_WORKER_CONFIG": str(dev_home / "worker.toml"),
-                "DIALECTICAL_COORDINATOR_URL": coordinator_url,
-                "DIALECTICAL_USER_TOKEN": environ.get("DIALECTICAL_USER_TOKEN", DEFAULT_USER_TOKEN),
-                "DIALECTICAL_WORKER_NAME": environ.get("DIALECTICAL_WORKER_NAME", "mac-mini"),
-                "DIALECTICAL_ENABLE_MOCK": environ.get("DIALECTICAL_ENABLE_MOCK", "1"),
-                "DIALECTICAL_ENABLE_REAL_ADAPTERS": environ.get("DIALECTICAL_ENABLE_REAL_ADAPTERS", "0"),
-            },
+            worker_env,
         ),
         ProcessSpec(
             "web",
@@ -106,6 +121,18 @@ def start(spec: ProcessSpec) -> subprocess.Popen:
     child_env = os.environ.copy()
     child_env.update(spec.env)
     child_env.setdefault("DIALECTICAL_USER_TOKEN", DEFAULT_USER_TOKEN)
+    if spec.name == "worker-a":
+        visible_env = {
+            key: child_env.get(key)
+            for key in (
+                "DIALECTICAL_ENABLE_MOCK",
+                "DIALECTICAL_ENABLE_REAL_ADAPTERS",
+                "DIALECTICAL_ALLOWED_MODELS",
+                "CODEX_COMMAND",
+            )
+            if child_env.get(key)
+        }
+        print(f"[dev] worker-a env {visible_env}", flush=True)
     process = subprocess.Popen(spec.args, cwd=spec.cwd, env=child_env)
     print(f"[dev] started {spec.name} pid={process.pid}", flush=True)
     return process

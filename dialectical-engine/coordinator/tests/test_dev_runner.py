@@ -82,8 +82,10 @@ def test_make_dev_topology_defaults_to_goal_ports_and_worker_a() -> None:
     assert by_name["worker-a"].cwd == ROOT / "worker"
     assert by_name["worker-a"].env["DIALECTICAL_COORDINATOR_URL"] == "http://localhost:8000"
     assert by_name["worker-a"].env["DIALECTICAL_WORKER_NAME"] == "mac-mini"
-    assert by_name["worker-a"].env["DIALECTICAL_ENABLE_MOCK"] == "1"
-    assert by_name["worker-a"].env["DIALECTICAL_ENABLE_REAL_ADAPTERS"] == "0"
+    assert by_name["worker-a"].env["DIALECTICAL_ENABLE_MOCK"] == "0"
+    assert by_name["worker-a"].env["DIALECTICAL_ENABLE_REAL_ADAPTERS"] == "1"
+    assert by_name["worker-a"].env["DIALECTICAL_ALLOWED_MODELS"] == "codex-gpt-5.5"
+    assert by_name["worker-a"].env["CODEX_COMMAND"] == str(ROOT / "scripts" / "codex-cli.cmd")
 
     assert by_name["web"].args == [
         "/python",
@@ -119,6 +121,8 @@ def test_make_dev_allows_isolated_ports_for_smoke_checks() -> None:
             "DIALECTICAL_WORKER_NAME": "custom-worker",
             "DIALECTICAL_ENABLE_MOCK": "0",
             "DIALECTICAL_ENABLE_REAL_ADAPTERS": "1",
+            "DIALECTICAL_ALLOWED_MODELS": "codex-gpt-5.5",
+            "CODEX_COMMAND": "C:\\tools\\codex-cli.cmd",
         },
     )
     by_name = {spec.name: spec for spec in specs}
@@ -132,9 +136,28 @@ def test_make_dev_allows_isolated_ports_for_smoke_checks() -> None:
     assert by_name["worker-a"].env["DIALECTICAL_WORKER_NAME"] == "custom-worker"
     assert by_name["worker-a"].env["DIALECTICAL_ENABLE_MOCK"] == "0"
     assert by_name["worker-a"].env["DIALECTICAL_ENABLE_REAL_ADAPTERS"] == "1"
+    assert by_name["worker-a"].env["DIALECTICAL_ALLOWED_MODELS"] == "codex-gpt-5.5"
+    assert by_name["worker-a"].env["CODEX_COMMAND"] == "C:\\tools\\codex-cli.cmd"
     assert by_name["web"].args[by_name["web"].args.index("--public-port") + 1] == "3765"
     assert by_name["web"].args[by_name["web"].args.index("--next-port") + 1] == "3766"
     assert by_name["web"].args[by_name["web"].args.index("--coordinator-port") + 1] == "8765"
+
+
+def test_make_dev_defaults_real_worker_to_local_codex_wrapper() -> None:
+    module = load_dev_module()
+
+    specs = module.build_process_specs(
+        root=ROOT,
+        python="/python",
+        environ={
+            "DIALECTICAL_ENABLE_MOCK": "0",
+            "DIALECTICAL_ENABLE_REAL_ADAPTERS": "1",
+        },
+    )
+    worker = {spec.name: spec for spec in specs}["worker-a"]
+
+    assert worker.env["DIALECTICAL_ALLOWED_MODELS"] == "codex-gpt-5.5"
+    assert worker.env["CODEX_COMMAND"] == str(ROOT / "scripts" / "codex-cli.cmd")
 
 
 def test_make_dev_reload_can_be_disabled_for_smoke_checks() -> None:

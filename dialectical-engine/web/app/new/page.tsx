@@ -22,7 +22,7 @@ function NewDebateForm({ token }: { token: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const debate = await createDebate(trimmedQuestion, { mode: "single_shot" }, token);
+      const debate = await createDebate(trimmedQuestion, {}, token);
       router.push(`/debate/${debate.id}`);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Unable to create debate");
@@ -36,7 +36,7 @@ function NewDebateForm({ token }: { token: string }) {
       <div className="pageHeader">
         <div>
           <h1>New Debate</h1>
-          <p className="muted">Ask one question and run a single debate pass.</p>
+          <p className="muted">Ask one question and grow a Pro/Con debate tree.</p>
         </div>
       </div>
       <form className="formPanel" onSubmit={submit}>
@@ -55,7 +55,7 @@ function NewDebateForm({ token }: { token: string }) {
           <button type="submit" disabled={submitting || !question.trim()}>
             {submitting ? "Running..." : "Run Debate"}
           </button>
-          {submitting ? <span className="muted">Waiting for the single-shot result...</span> : null}
+          {submitting ? <span className="muted">Building the debate workspace...</span> : null}
         </div>
       </form>
     </main>
