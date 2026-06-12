@@ -27,6 +27,12 @@ ROLE_OVERRIDE_KEYS = ("role_overrides", "roles", "routing")
 MAX_STREAM_DELTA_CHARS = 16_384
 MAX_STREAM_BUFFER_CHARS = 200_000
 MUTABLE_JOB_STATUSES = {"claimed", "running"}
+V2_POV_ROLES = {
+    "SCIENTIFIC_POV": "Scientific POV",
+    "STATISTICAL_POV": "Statistical POV",
+    "ETHICAL_POV": "Ethical POV",
+    "PRACTICAL_POV": "Practical POV",
+}
 
 
 class StaleJobMutationError(ValueError):
@@ -373,7 +379,7 @@ def cancel_active_synthesis_jobs(db: Session, debate_id: str, reason: str) -> No
     jobs = db.scalars(
         select(Job).where(
             Job.debate_id == debate_id,
-            Job.job_type == "synthesize",
+            Job.job_type.in_(["synthesize", "v2_synthesize"]),
             Job.status.in_(["pending", "claimed", "running"]),
         )
     ).all()
@@ -880,8 +886,15 @@ async def regenerate_node(db: Session, node: Node, model_id: str | None = None) 
         raise ValueError("Debate not found")
     active_generation = db.get(Generation, node.active_generation_id) if node.active_generation_id else None
     online_models = online_capabilities(db)
-    role = "decomposer" if node.node_type == "ROOT_CLAIM" else role_for_node(node.node_type)
-    job_type = "decompose" if node.node_type == "ROOT_CLAIM" else "argue"
+    if node.node_type == "ROOT_CLAIM":
+        role = "decomposer"
+        job_type = "decompose"
+    elif node.node_type in V2_POV_ROLES:
+        role = V2_POV_ROLES[node.node_type]
+        job_type = "v2_pov"
+    else:
+        role = role_for_node(node.node_type)
+        job_type = "argue"
     parent = db.get(Node, node.parent_id) if node.parent_id else None
     role_configs = routing_roles_for_debate(debate)
     constrained_excludes = claim_author_exclusions(db, role, parent, debate)
@@ -897,13 +910,16 @@ async def regenerate_node(db: Session, node: Node, model_id: str | None = None) 
     exclude |= constrained_excludes if not model_id else set()
     cancel_active_jobs_for_node(db, node, "Node regeneration superseded")
     cancel_active_synthesis_jobs(db, debate.id, "Node regeneration superseded synthesis")
+    required_model = model_id
+    if job_type == "v2_pov" and required_model is None and active_generation:
+        required_model = active_generation.model_id
     job = create_job(
         db,
         debate.id,
         job_type,
         role,
         node.id,
-        required_model=model_id,
+        required_model=required_model,
         exclude_models=exclude,
     )
     stale_descendants(db, node)

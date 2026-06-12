@@ -225,7 +225,13 @@ def worker_agent_run_output(worker: Worker, job_id: str) -> dict:
 
 
 def worker_pov_output(worker: Worker, job_id: str, pov: str) -> dict:
-    prefix = "scientific" if pov == "Scientific POV" else "statistical"
+    prefixes = {
+        "Scientific POV": "scientific",
+        "Statistical POV": "statistical",
+        "Ethical POV": "ethical",
+        "Practical POV": "practical",
+    }
+    prefix = prefixes[pov]
     return {
         "title": f"{pov} assessment",
         "content": f"A concise {prefix} assessment of the question based on the strongest available reasoning.",
@@ -280,7 +286,7 @@ def worker_non_adjudicating_synthesis(worker: Worker, job_id: str) -> dict:
 
 
 def complete_worker_v2_plan_pipeline(db, debate: Debate, worker: Worker) -> None:
-    for _ in range(2):
+    for _ in range(4):
         job = claim_for_worker(db, worker)
         assert job.job_type == "v2_pov"
         asyncio.run(complete_job(db, job, worker_pov_output(worker, job.id, job.required_role), {"latency_ms": 12}))
@@ -300,14 +306,19 @@ def test_create_debate_queues_planner_before_agent_execution(db) -> None:
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {"max_depth": 1})
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id).order_by(entities.Job.created_at)).all()
 
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov"]
-    assert {job.required_role for job in jobs if job.job_type == "v2_pov"} == {"Scientific POV", "Statistical POV"}
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
+    assert [job.required_role for job in jobs if job.job_type == "v2_pov"] == [
+        "Scientific POV",
+        "Statistical POV",
+        "Ethical POV",
+        "Practical POV",
+    ]
     assert {job.required_model for job in jobs if job.job_type == "v2_pov"} == {"codex-gpt-5.5"}
     assert all(job.required_model != "mock-local" for job in jobs)
     assert db.scalar(select(entities.AgentRun).where(entities.AgentRun.debate_id == debate.id)) is None
 
 
-def test_create_debate_creates_visible_scientific_and_statistical_pov_branches(db) -> None:
+def test_create_debate_creates_visible_top_level_pov_branches(db) -> None:
     service = v2_service()
     real_codex_worker(db)
 
@@ -315,9 +326,19 @@ def test_create_debate_creates_visible_scientific_and_statistical_pov_branches(d
     detail = debate_to_dict(db, debate)
 
     assert detail["tree"]["node_type"] == "ROOT_CLAIM"
-    assert [child["node_type"] for child in detail["tree"]["children"]] == ["SCIENTIFIC_POV", "STATISTICAL_POV"]
-    assert [child["claim"] for child in detail["tree"]["children"]] == ["Scientific POV", "Statistical POV"]
-    assert [child["status"] for child in detail["tree"]["children"]] == ["pending", "pending"]
+    assert [child["node_type"] for child in detail["tree"]["children"]] == [
+        "SCIENTIFIC_POV",
+        "STATISTICAL_POV",
+        "ETHICAL_POV",
+        "PRACTICAL_POV",
+    ]
+    assert [child["claim"] for child in detail["tree"]["children"]] == [
+        "Scientific POV",
+        "Statistical POV",
+        "Ethical POV",
+        "Practical POV",
+    ]
+    assert [child["status"] for child in detail["tree"]["children"]] == ["pending", "pending", "pending", "pending"]
     assert detail["models"] == []
 
 
@@ -365,7 +386,7 @@ def test_pov_completion_materializes_title_content_and_nested_pro_con_cards(db) 
 
     first_job = claim_for_worker(db, worker)
     assert first_job.job_type == "v2_pov"
-    assert first_job.required_role in {"Scientific POV", "Statistical POV"}
+    assert first_job.required_role in {"Scientific POV", "Statistical POV", "Ethical POV", "Practical POV"}
     asyncio.run(complete_job(db, first_job, worker_pov_output(worker, first_job.id, first_job.required_role), {"latency_ms": 12}))
 
     detail = debate_to_dict(db, debate)
@@ -387,7 +408,7 @@ def test_pov_completion_materializes_title_content_and_nested_pro_con_cards(db) 
         assert all(child["status"] == "complete" for child in stance["children"])
 
 
-def test_synthesis_queues_only_after_both_pov_branches_complete(db) -> None:
+def test_synthesis_queues_only_after_all_pov_branches_complete(db) -> None:
     service = v2_service()
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
@@ -396,9 +417,10 @@ def test_synthesis_queues_only_after_both_pov_branches_complete(db) -> None:
     asyncio.run(complete_job(db, first_job, worker_pov_output(worker, first_job.id, first_job.required_role), {"latency_ms": 12}))
     assert db.scalar(select(entities.Job).where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_synthesize")) is None
 
-    second_job = claim_for_worker(db, worker)
-    assert second_job.job_type == "v2_pov"
-    asyncio.run(complete_job(db, second_job, worker_pov_output(worker, second_job.id, second_job.required_role), {"latency_ms": 12}))
+    for _ in range(3):
+        next_job = claim_for_worker(db, worker)
+        assert next_job.job_type == "v2_pov"
+        asyncio.run(complete_job(db, next_job, worker_pov_output(worker, next_job.id, next_job.required_role), {"latency_ms": 12}))
 
     synthesis_job = db.scalar(select(entities.Job).where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_synthesize"))
     assert synthesis_job is not None
@@ -410,7 +432,7 @@ def test_non_adjudicating_synthesis_completes_without_declaring_winner(db) -> No
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
-    for _ in range(2):
+    for _ in range(4):
         job = claim_for_worker(db, worker)
         assert job.job_type == "v2_pov"
         asyncio.run(complete_job(db, job, worker_pov_output(worker, job.id, job.required_role), {"latency_ms": 12}))
@@ -469,11 +491,11 @@ def test_synthesis_waits_until_all_pov_branches_complete(db) -> None:
     incomplete_pov = db.scalars(
         select(entities.Node).where(
             entities.Node.debate_id == debate.id,
-            entities.Node.node_type.in_(["SCIENTIFIC_POV", "STATISTICAL_POV"]),
+            entities.Node.node_type.in_(["SCIENTIFIC_POV", "STATISTICAL_POV", "ETHICAL_POV", "PRACTICAL_POV"]),
             entities.Node.status != "complete",
         )
     ).all()
-    assert len(incomplete_pov) == 1
+    assert len(incomplete_pov) == 3
 
 
 def test_pov_pipeline_completes_from_real_jobs_and_returns_breakdown(db) -> None:
@@ -485,7 +507,12 @@ def test_pov_pipeline_completes_from_real_jobs_and_returns_breakdown(db) -> None
     detail = TestClient(app).get(f"/api/debates/{debate.id}").json()
 
     assert detail["status"] == "complete"
-    assert [child["claim"] for child in detail["tree"]["children"]] == ["Scientific POV", "Statistical POV"]
+    assert [child["claim"] for child in detail["tree"]["children"]] == [
+        "Scientific POV",
+        "Statistical POV",
+        "Ethical POV",
+        "Practical POV",
+    ]
     assert all(child["status"] == "complete" for child in detail["tree"]["children"])
     assert detail["selected_agents"] == []
     assert detail["selected_skills"] == []
@@ -537,7 +564,12 @@ def test_empty_database_question_creates_full_pipeline_without_direct_answer(db)
     assert detail["synthesis"]["analyzer_findings"] == {}
     assert detail["synthesis"]["provenance"]["model_id"] == "codex-gpt-5.5"
     assert detail["synthesis"]["provenance"]["worker_id"] == worker.id
-    assert {child["node_type"] for child in detail["tree"]["children"]} == {"SCIENTIFIC_POV", "STATISTICAL_POV"}
+    assert {child["node_type"] for child in detail["tree"]["children"]} == {
+        "SCIENTIFIC_POV",
+        "STATISTICAL_POV",
+        "ETHICAL_POV",
+        "PRACTICAL_POV",
+    }
 
     db.expire_all()
     assert db.scalar(select(models["DebateBranch"]).where(models["DebateBranch"].debate_id == debate.id)) is not None
@@ -622,7 +654,7 @@ def test_deterministic_capabilities_are_not_reused_for_product_v2(db) -> None:
     created = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == created.id)).all()
 
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov"]
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
     assert not db.scalars(
         select(models["CapabilityMatch"]).where(
             models["CapabilityMatch"].debate_id == created.id,
@@ -705,9 +737,14 @@ def test_post_debate_runs_v2_pipeline_and_detail_api_returns_contract(db) -> Non
     assert payload["selected_agents"] == []
     assert payload["agent_outputs"] == []
     assert payload["branch_lineage"][0]["debate_id"] == payload["id"]
-    assert [child["claim"] for child in payload["tree"]["children"]] == ["Scientific POV", "Statistical POV"]
+    assert [child["claim"] for child in payload["tree"]["children"]] == [
+        "Scientific POV",
+        "Statistical POV",
+        "Ethical POV",
+        "Practical POV",
+    ]
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == payload["id"])).all()
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov"]
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
 
 
 def test_v2_rejects_mock_only_workers(db) -> None:
@@ -740,7 +777,7 @@ def test_v2_creates_worker_jobs_for_pov_branches_and_synthesis(db) -> None:
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
     first_jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_pov")).all()
-    assert len(first_jobs) == 2
+    assert len(first_jobs) == 4
     assert {job.required_model for job in first_jobs} == {"codex-gpt-5.5"}
     complete_worker_v2_pipeline(db, debate, worker)
 
@@ -748,7 +785,7 @@ def test_v2_creates_worker_jobs_for_pov_branches_and_synthesis(db) -> None:
         job.job_type
         for job in db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id).order_by(entities.Job.created_at)).all()
     ]
-    assert job_types.count("v2_pov") == 2
+    assert job_types.count("v2_pov") == 4
     assert "v2_agent_run" not in job_types
     assert "v2_synthesize" in job_types
 
@@ -767,6 +804,24 @@ def test_v2_pov_prompt_rejects_status_wrapper_and_includes_schema(db) -> None:
     assert '"strongest_con"' in user
     assert '"title"' in user
     assert job.required_role in user
+
+
+def test_v2_pov_prompts_include_ethical_and_practical_lens_descriptions(db) -> None:
+    service = v2_service()
+    worker = real_codex_worker(db)
+    debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
+    jobs = db.scalars(
+        select(entities.Job)
+        .where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_pov")
+        .order_by(entities.Job.created_at)
+    ).all()
+
+    prompts = {job.required_role: service.render_v2_job_prompt(db, job)[1] for job in jobs}
+
+    assert "fairness, harm, dignity, rights, responsibility, and group tradeoffs" in prompts["Ethical POV"]
+    assert "whether the action should be done even if it works" in prompts["Ethical POV"]
+    assert "feasibility, operational complexity, costs, maintainability, failure modes, rollout risks, and edge cases" in prompts["Practical POV"]
+    assert "whether the action can realistically be done" in prompts["Practical POV"]
 
 
 def test_v2_persists_pov_tree_and_synthesis_from_worker_completed_json(db) -> None:

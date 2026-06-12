@@ -44,7 +44,27 @@ NO_REAL_CODEX_WORKER_ERROR = "No real Codex worker online for Dialectical V2 art
 POV_BRANCHES = (
     ("SCIENTIFIC_POV", "Scientific POV"),
     ("STATISTICAL_POV", "Statistical POV"),
+    ("ETHICAL_POV", "Ethical POV"),
+    ("PRACTICAL_POV", "Practical POV"),
 )
+POV_LENS_DESCRIPTIONS = {
+    "Scientific POV": (
+        "Evaluate causal mechanisms, empirical evidence quality, uncertainty, external validity, "
+        "and what the current scientific reasoning supports or does not support."
+    ),
+    "Statistical POV": (
+        "Evaluate measurement, base rates, effect sizes, distributions, statistical uncertainty, "
+        "confounding, sample quality, and quantitative evidence gaps."
+    ),
+    "Ethical POV": (
+        "Evaluate fairness, harm, dignity, rights, responsibility, and group tradeoffs, including "
+        "whether the action should be done even if it works."
+    ),
+    "Practical POV": (
+        "Evaluate feasibility, operational complexity, costs, maintainability, failure modes, "
+        "rollout risks, and edge cases, including whether the action can realistically be done."
+    ),
+}
 PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
 AgentCapability = AgentDefinition
 SkillCapability = SkillDefinition
@@ -812,9 +832,11 @@ def render_v2_job_prompt(db: Session, job: Job) -> tuple[str, str]:
             raise ValueError("POV job must target a POV node")
         pov_node = db.get(Node, job.node_id)
         pov_label = pov_node.claim if pov_node else job.required_role
+        lens_description = POV_LENS_DESCRIPTIONS.get(pov_label, "")
         pov_context = {
             **base_context,
             "pov": pov_label,
+            "lens_description": lens_description,
             "output_contract": {
                 "title": "short title for the POV assessment",
                 "content": "concise content with only the most relevant data/reasoning",
@@ -838,6 +860,7 @@ def render_v2_job_prompt(db: Session, job: Job) -> tuple[str, str]:
         )
         user = (
             f"Generate the {pov_label} branch for the debate question. "
+            f"Lens instructions: {lens_description} "
             "Use real reasoning from this model call only; do not use placeholders or canned examples. "
             "Create one strongest Pro and one strongest Con, and for each create one nested Pro and one nested Con. "
             "Every generated card must have a short title and concise content.\n\n"

@@ -8,7 +8,13 @@ import type { DebateNode, Generation } from "@/lib/types";
 function nodeClass(node: DebateNode): string {
   if (node.node_type === "PRO") return "nodeCard pro";
   if (node.node_type === "CON") return "nodeCard con";
-  if (node.node_type === "SCIENTIFIC_POV" || node.node_type === "STATISTICAL_POV") return "nodeCard root";
+  if (
+    node.node_type === "SCIENTIFIC_POV" ||
+    node.node_type === "STATISTICAL_POV" ||
+    node.node_type === "ETHICAL_POV" ||
+    node.node_type === "PRACTICAL_POV"
+  )
+    return "nodeCard root";
   return "nodeCard root";
 }
 
@@ -16,6 +22,8 @@ function nodeLabel(node: DebateNode): string {
   if (node.node_type === "ROOT_CLAIM") return "Root";
   if (node.node_type === "SCIENTIFIC_POV") return "Scientific POV";
   if (node.node_type === "STATISTICAL_POV") return "Statistical POV";
+  if (node.node_type === "ETHICAL_POV") return "Ethical POV";
+  if (node.node_type === "PRACTICAL_POV") return "Practical POV";
   return node.node_type === "PRO" ? "Pro" : "Con";
 }
 
@@ -94,8 +102,9 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
   const modelStyle = generation
     ? ({ "--model-color": activeModelColor, "--node-model-color": activeModelColor } as CSSProperties)
     : undefined;
+  const childLayout = node.node_type === "ROOT_CLAIM" ? "root-povs" : "vertical";
   return (
-    <div className="tree">
+    <div className="tree" data-node-type={node.node_type}>
       <article
         className={[nodeClass(node), canToggleChildren ? "expandable" : ""].filter(Boolean).join(" ")}
         style={modelStyle}
@@ -165,7 +174,10 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
         ) : null}
       </article>
       {hasChildren && childrenOpen ? (
-        <div className="children">
+        <div
+          className={["children", childLayout === "root-povs" ? "rootPovChildren" : ""].filter(Boolean).join(" ")}
+          data-child-layout={childLayout}
+        >
           {node.children.map((child) => (
             <DebateTree
               key={child.id}

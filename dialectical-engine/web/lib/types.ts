@@ -27,7 +27,7 @@ export type DebateNode = {
   id: string;
   debate_id: string;
   parent_id: string | null;
-  node_type: "ROOT_CLAIM" | "SCIENTIFIC_POV" | "STATISTICAL_POV" | "PRO" | "CON";
+  node_type: "ROOT_CLAIM" | "SCIENTIFIC_POV" | "STATISTICAL_POV" | "ETHICAL_POV" | "PRACTICAL_POV" | "PRO" | "CON";
   depth: number;
   position: number;
   claim: string;

@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.core.auth import hash_token
 from app.core.config import DEFAULT_ROUTING, RUNTIME_SETTINGS_KEY
 from app.core.db import SessionLocal
-from app.models.entities import Debate, Generation, Job, Node, Setting, Worker, now_utc
+from app.models.entities import Debate, Generation, Job, Node, Setting, Synthesis, Worker, now_utc
 from app.services.orchestrator import (
     StaleJobMutationError,
     append_stream_delta,
@@ -1164,6 +1164,128 @@ def test_root_regeneration_replaces_visible_opening_tree(db) -> None:
     assert [child["claim"] for child in visible["tree"]["children"]] == ["New pro opening.", "New con opening."]
     root_history = db.scalars(select(Generation).where(Generation.node_id == root.id)).all()
     assert len(root_history) == 2
+
+
+def test_v2_pov_regeneration_queues_v2_jobs_and_clears_stale_work(db) -> None:
+    worker = Worker(
+        name="codex-worker",
+        token_hash=hash_token("worker-token"),
+        capabilities=["codex-gpt-5.5"],
+        last_seen=now_utc(),
+        status="online",
+    )
+    debate = Debate(topic="Should cities ban cars?", status="complete", config={"max_depth": 2, "branching": 2})
+    db.add_all([worker, debate])
+    db.flush()
+    root = Node(
+        debate_id=debate.id,
+        node_type="ROOT_CLAIM",
+        depth=0,
+        position=0,
+        claim=debate.topic,
+        status="complete",
+        materialized_path="/0",
+    )
+    db.add(root)
+    db.flush()
+    debate.root_node_id = root.id
+
+    pov_types = [
+        ("SCIENTIFIC_POV", "Scientific POV"),
+        ("STATISTICAL_POV", "Statistical POV"),
+        ("ETHICAL_POV", "Ethical POV"),
+        ("PRACTICAL_POV", "Practical POV"),
+    ]
+    pov_nodes = []
+    stale_children = []
+    for position, (node_type, label) in enumerate(pov_types):
+        pov = Node(
+            debate_id=debate.id,
+            parent_id=root.id,
+            node_type=node_type,
+            depth=1,
+            position=position,
+            claim=label,
+            status="complete",
+            materialized_path=f"/0/{position}",
+        )
+        db.add(pov)
+        db.flush()
+        generation = Generation(
+            node_id=pov.id,
+            model_id="codex-gpt-5.5",
+            role=label,
+            argument=f"{label} assessment.",
+            prompt_version="v2",
+            prompt_rendered="prompt",
+            latency_ms=10,
+            is_active=True,
+            worker_id=worker.id,
+        )
+        stale_child = Node(
+            debate_id=debate.id,
+            parent_id=pov.id,
+            node_type="PRO",
+            depth=2,
+            position=0,
+            claim=f"Old {label} child.",
+            status="complete",
+            materialized_path=f"/0/{position}/0",
+        )
+        db.add_all([generation, stale_child])
+        db.flush()
+        pov.active_generation_id = generation.id
+        pov_nodes.append((pov, label))
+        stale_children.append(stale_child)
+
+    synthesis = Synthesis(
+        debate_id=debate.id,
+        strongest_pro="Prior pro.",
+        strongest_con="Prior con.",
+        verdict="Prior verdict.",
+        model_id="codex-gpt-5.5",
+        worker_id=worker.id,
+    )
+    db.add(synthesis)
+    db.flush()
+    debate.synthesis_id = synthesis.id
+    synthesis_job = Job(
+        debate_id=debate.id,
+        job_type="v2_synthesize",
+        required_role="v2_synthesizer",
+        required_model="codex-gpt-5.5",
+        status="running",
+        worker_id=worker.id,
+        deadline=now_utc(),
+        stream_buffer="partial v2 synthesis",
+    )
+    db.add(synthesis_job)
+    db.flush()
+    worker.current_job_id = synthesis_job.id
+    db.commit()
+
+    regenerated = []
+    for pov, label in pov_nodes:
+        job = asyncio.run(regenerate_node(db, pov))
+        regenerated.append((job, label))
+
+    for job, label in regenerated:
+        assert job.job_type == "v2_pov"
+        assert job.required_role == label
+        assert job.required_model == "codex-gpt-5.5"
+    for stale_child in stale_children:
+        db.refresh(stale_child)
+        assert stale_child.status == "stale"
+    db.refresh(debate)
+    db.refresh(synthesis_job)
+    db.refresh(worker)
+    assert debate.synthesis_id is None
+    assert debate.status == "generating"
+    assert synthesis_job.status == "failed"
+    assert synthesis_job.error == "Node regeneration superseded synthesis"
+    assert synthesis_job.worker_id is None
+    assert synthesis_job.stream_buffer == ""
+    assert worker.current_job_id is None
 
 
 def test_decomposition_respects_branching_limit(db) -> None:

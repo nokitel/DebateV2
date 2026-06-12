@@ -278,24 +278,24 @@ nav {
 }
 
 .treeViewport {
-  --tree-card-width: clamp(280px, calc(100vw - 56px), 316px);
+  --tree-card-width: clamp(300px, calc(100vw - 56px), 500px);
   overflow-x: auto;
   overflow-y: visible;
   padding: 6px 0 20px;
 }
 
 .tree {
-  display: grid;
-  grid-template-columns: max-content;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
-  align-items: start;
-  width: max-content;
-  max-width: none;
-  min-width: max-content;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .treeViewport > .tree {
-  min-width: max-content;
+  max-width: none;
 }
 
 .singleShotPanel {
@@ -441,19 +441,52 @@ nav {
 }
 
 .children {
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 14px;
-  width: max-content;
-  min-width: max-content;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
   margin-left: 24px;
   padding-left: 18px;
   border-left: 1px solid var(--line);
 }
 
 .children > .tree {
-  min-width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rootPovChildren,
+.children[data-child-layout="root-povs"] {
+  display: grid;
+  grid-template-columns: repeat(2, var(--tree-card-width));
+  align-items: start;
+  gap: 14px;
+  width: fit-content;
+  max-width: none;
+}
+
+.children[data-child-layout="root-povs"] > .tree {
+  width: var(--tree-card-width);
+  max-width: var(--tree-card-width);
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="SCIENTIFIC_POV"] {
+  order: 1;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="ETHICAL_POV"] {
+  order: 2;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="STATISTICAL_POV"] {
+  order: 3;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="PRACTICAL_POV"] {
+  order: 4;
 }
 
 .nodeCard {
@@ -755,8 +788,27 @@ nav {
   }
 
   .children {
-    grid-template-columns: max-content;
     margin-left: 10px;
     padding-left: 12px;
+  }
+
+  .children[data-child-layout="root-povs"] {
+    grid-template-columns: minmax(0, var(--tree-card-width));
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="SCIENTIFIC_POV"] {
+    order: 1;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="STATISTICAL_POV"] {
+    order: 2;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="ETHICAL_POV"] {
+    order: 3;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="PRACTICAL_POV"] {
+    order: 4;
   }
 }
