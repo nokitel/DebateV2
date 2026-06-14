@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from pathlib import Path
 
 import httpx
 import pytest
@@ -37,6 +38,8 @@ from app.main import (
     stale_job_coordinator_error,
 )
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 @pytest.mark.asyncio
 async def test_mock_adapter_generates_structured_decomposition() -> None:
@@ -53,6 +56,21 @@ async def test_mock_adapter_generates_structured_decomposition() -> None:
     text = "".join(chunks)
     result = parse_result({"job_type": "decompose"}, text)
     assert result["root_claim"] == "Should cities ban cars?"
+    assert result["children"][0]["node_type"] == "PRO"
+
+
+def test_mock_adapter_matches_real_decomposer_prompt_contract() -> None:
+    adapter = MockAdapter(token_delay_seconds=0)
+    system = (ROOT / "coordinator" / "app" / "prompts" / "decomposer.v1.md").read_text()
+    text = adapter.generate(
+        system,
+        "<topic>Should local AI debate systems separate provider adapters from reasoning logic?</topic>"
+        "<claim depth=\"0\">Should local AI debate systems separate provider adapters from reasoning logic?</claim>",
+    )
+
+    result = parse_result({"job_type": "decompose"}, text)
+
+    assert result["root_claim"] == "Should local AI debate systems separate provider adapters from reasoning logic?"
     assert result["children"][0]["node_type"] == "PRO"
 
 
