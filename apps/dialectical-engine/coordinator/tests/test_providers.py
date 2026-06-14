@@ -81,6 +81,8 @@ def test_codex_provider_builds_cli_command_without_live_call() -> None:
 
 def test_proposal_engine_modules_outside_providers_do_not_reference_vendors() -> None:
     checked_roots = [
+        ENGINE_ROOT / "coordinator" / "app" / "debate",
+        ENGINE_ROOT / "coordinator" / "app" / "evidence",
         ENGINE_ROOT / "coordinator" / "app" / "qbaf",
         ENGINE_ROOT / "coordinator" / "app" / "scoring",
     ]
