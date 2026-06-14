@@ -73,6 +73,8 @@ class Settings:
     job_fallback_seconds: int = 60
     routing: dict[str, dict[str, Any]] = field(default_factory=lambda: deepcopy(DEFAULT_ROUTING))
     grok_monthly_cap_usd: float = 25.0
+    openai_api_key: str | None = None
+    openai_model: str | None = None
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -110,6 +112,22 @@ def clean_string(value: Any, default: str) -> str:
     return cleaned or default
 
 
+def load_dotenv_values(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        values[key] = value.strip().strip('"').strip("'")
+    return values
+
+
 def int_env(name: str, default: int, minimum: int, maximum: int) -> int:
     value = os.getenv(name)
     return bounded_int(value, default, minimum, maximum) if value is not None else default
@@ -122,6 +140,7 @@ def float_env(name: str, default: float, minimum: float, maximum: float) -> floa
 
 def load_settings(path: Path | None = None) -> Settings:
     path = path or Path(os.getenv("DIALECTICAL_COORDINATOR_CONFIG", DEFAULT_CONFIG_PATH)).expanduser()
+    dotenv_values = load_dotenv_values(Path(".env"))
     home = Path(os.getenv("DIALECTICAL_HOME", str(DEFAULT_COORDINATOR_DIR))).expanduser()
     db_url = os.getenv("DIALECTICAL_DATABASE_URL", f"sqlite:///{home / 'db.sqlite3'}")
     settings = Settings(home=home, database_url=db_url)
@@ -164,6 +183,11 @@ def load_settings(path: Path | None = None) -> Settings:
             settings.routing = deep_merge(deepcopy(DEFAULT_ROUTING), raw["roles"])
 
     settings.user_token = os.getenv("DIALECTICAL_USER_TOKEN")
+    settings.openai_api_key = os.getenv("OPENAI_API_KEY", dotenv_values.get("OPENAI_API_KEY"))
+    settings.openai_model = clean_string(
+        os.getenv("OPENAI_MODEL", dotenv_values.get("OPENAI_MODEL")),
+        settings.openai_model or "codex-gpt-5.5",
+    )
     settings.public_base_url = clean_string(os.getenv("DIALECTICAL_PUBLIC_BASE_URL"), settings.public_base_url)
     settings.web_origin = clean_string(os.getenv("DIALECTICAL_WEB_ORIGIN"), settings.web_origin)
     settings.public_rate_limit_per_minute = int_env(
