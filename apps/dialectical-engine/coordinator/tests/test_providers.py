@@ -84,6 +84,7 @@ def test_proposal_engine_modules_outside_providers_do_not_reference_vendors() ->
         ENGINE_ROOT / "coordinator" / "app" / "debate",
         ENGINE_ROOT / "coordinator" / "app" / "evidence",
         ENGINE_ROOT / "coordinator" / "app" / "metareasoning",
+        ENGINE_ROOT / "coordinator" / "app" / "orchestration",
         ENGINE_ROOT / "coordinator" / "app" / "qbaf",
         ENGINE_ROOT / "coordinator" / "app" / "scoring",
     ]
