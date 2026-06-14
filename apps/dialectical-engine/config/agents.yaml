@@ -1,0 +1,14 @@
+defaults:
+  provider: codex
+  model: ${OPENAI_MODEL}
+  temperature: 0.2
+agents:
+  proponent: {}
+  opponent: {}
+  judge:
+    temperature: 0.0
+  specialist: {}
+  methodologist: {}
+  skeptic: {}
+  estimator:
+    temperature: 0.0

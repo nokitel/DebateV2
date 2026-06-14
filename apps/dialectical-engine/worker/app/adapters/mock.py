@@ -32,7 +32,7 @@ class MockAdapter:
         claim = self._tag(user, "claim") or self._tag(user, "topic") or "the topic"
         topic = self._tag(user, "topic") or claim
         lower = system.lower()
-        if "strict json" in lower and "children" in lower:
+        if "json" in lower and "children" in lower:
             return json.dumps(
                 {
                     "root_claim": topic,

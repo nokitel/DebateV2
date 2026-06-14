@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import debates, jobs, nodes, settings, workers
+from app.api import debates, jobs, nodes, qbaf, settings, workers
 from app.core.auth import ensure_user_token
 from app.core.config import load_settings
 from app.core.db import SessionLocal, init_db
@@ -29,6 +29,7 @@ app.include_router(nodes.router)
 app.include_router(workers.router)
 app.include_router(jobs.router)
 app.include_router(settings.router)
+app.include_router(qbaf.router)
 
 _public_hits: dict[str, deque[float]] = defaultdict(deque)
 
