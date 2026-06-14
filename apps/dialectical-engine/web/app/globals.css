@@ -165,6 +165,7 @@ nav {
 .debateRow,
 .formPanel,
 .workersTable,
+.singleShotPanel,
 .synthesisPanel,
 .nodeCard {
   background: var(--panel);
@@ -277,38 +278,236 @@ nav {
 }
 
 .treeViewport {
+  --tree-card-width: clamp(300px, calc(100vw - 56px), 500px);
   overflow-x: auto;
+  overflow-y: visible;
   padding: 6px 0 20px;
 }
 
 .tree {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
 }
 
 .treeViewport > .tree {
-  min-width: 720px;
+  max-width: none;
+}
+
+.singleShotPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr);
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 18px;
+}
+
+.singleShotPanel section {
+  background: var(--panel-soft);
+  padding: 14px;
+}
+
+.singleShotPanel h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.singleShotPanel p {
+  margin: 0 0 10px;
+}
+
+.artifactGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.artifactItem {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 12px;
+}
+
+.artifactHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.artifactHeader h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.agentOutputPanel {
+  margin-bottom: 12px;
+}
+
+.argumentColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.argumentColumns h4 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.argumentColumns ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.argumentColumns li {
+  margin-bottom: 8px;
+}
+
+.singleShotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.singleShotHeader h2 {
+  margin: 0;
+}
+
+.singleShotHeader .pro {
+  background: #e7f8ef;
+  color: #167245;
+  border-color: #b6e7cb;
+}
+
+.singleShotHeader .con {
+  background: #fff2e3;
+  color: #9a5017;
+  border-color: #f3cf9f;
+}
+
+.singleShotStrongest {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.singleShotStrongest h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.singleShotFinal blockquote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+.singleShotMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.singleShotMeta span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  padding: 3px 8px;
+}
+
+.singleShotList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.singleShotList li + li {
+  margin-top: 8px;
 }
 
 .children {
-  display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 14px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
   margin-left: 24px;
   padding-left: 18px;
   border-left: 1px solid var(--line);
 }
 
 .children > .tree {
+  max-width: 100%;
   min-width: 0;
 }
 
+.rootPovChildren,
+.children[data-child-layout="root-povs"] {
+  display: grid;
+  grid-template-columns: repeat(2, var(--tree-card-width));
+  align-items: start;
+  gap: 14px;
+  width: fit-content;
+  max-width: none;
+}
+
+.children[data-child-layout="root-povs"] > .tree {
+  width: var(--tree-card-width);
+  max-width: var(--tree-card-width);
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="SCIENTIFIC_POV"] {
+  order: 1;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="ETHICAL_POV"] {
+  order: 2;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="STATISTICAL_POV"] {
+  order: 3;
+}
+
+.children[data-child-layout="root-povs"] > .tree[data-node-type="PRACTICAL_POV"] {
+  order: 4;
+}
+
 .nodeCard {
+  justify-self: start;
+  width: var(--tree-card-width);
+  max-width: var(--tree-card-width);
+  min-width: 0;
   padding: 14px;
   position: relative;
+  overflow-wrap: anywhere;
   box-shadow: inset 0 3px 0 var(--node-model-color, transparent), var(--shadow);
+}
+
+.nodeCard.expandable {
+  cursor: pointer;
+  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+
+.nodeCard.expandable:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 3px 0 var(--node-model-color, transparent), 0 12px 28px rgba(46, 41, 34, 0.14);
 }
 
 .nodeCard.pro {
@@ -332,6 +531,33 @@ nav {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  min-width: 0;
+}
+
+.nodeTop > div {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.nodeCard .toolbar {
+  min-width: 0;
+}
+
+.nodeCard .badge,
+.nodeCard .statusPill {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.modelBadge::before {
+  flex: 0 0 auto;
+}
+
+.nodeCard button {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .actionAuthBar {
@@ -367,6 +593,7 @@ nav {
   margin: 0 0 10px;
   font-size: 15px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .argument {
@@ -374,6 +601,15 @@ nav {
   line-height: 1.5;
   font-size: 14px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.argumentToggle {
+  cursor: pointer;
+}
+
+.argumentToggle:hover {
+  color: #111;
 }
 
 .historyPanel {
@@ -396,6 +632,7 @@ nav {
   color: #38332e;
   font-size: 13px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .cursor::after {
@@ -541,6 +778,7 @@ nav {
 
   .formGrid,
   .spendRow,
+  .singleShotPanel,
   .synthesisPanel {
     grid-template-columns: 1fr;
   }
@@ -550,7 +788,27 @@ nav {
   }
 
   .children {
-    grid-template-columns: 1fr;
     margin-left: 10px;
+    padding-left: 12px;
+  }
+
+  .children[data-child-layout="root-povs"] {
+    grid-template-columns: minmax(0, var(--tree-card-width));
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="SCIENTIFIC_POV"] {
+    order: 1;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="STATISTICAL_POV"] {
+    order: 2;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="ETHICAL_POV"] {
+    order: 3;
+  }
+
+  .children[data-child-layout="root-povs"] > .tree[data-node-type="PRACTICAL_POV"] {
+    order: 4;
   }
 }

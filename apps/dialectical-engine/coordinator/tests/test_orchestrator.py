@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.core.auth import hash_token
 from app.core.config import DEFAULT_ROUTING, RUNTIME_SETTINGS_KEY
 from app.core.db import SessionLocal
-from app.models.entities import Debate, Generation, Job, Node, Setting, Worker, now_utc
+from app.models.entities import Debate, Generation, Job, Node, Setting, Synthesis, Worker, now_utc
 from app.services.orchestrator import (
     StaleJobMutationError,
     append_stream_delta,
@@ -27,6 +27,13 @@ from app.services.orchestrator import (
     render_job_payload,
     spawn_child_argument_jobs,
     try_claim_pending_job,
+)
+from app.services.single_shot import (
+    CodexCliDebateGenerator,
+    DebateGenerationResult,
+    OpenAIDebateGenerator,
+    create_single_shot_debate,
+    validate_single_shot_result,
 )
 from app.services.events import event_bus
 from app.services.prompts import render_prompt
@@ -90,6 +97,140 @@ def test_mock_orchestration_completes_and_exports(db) -> None:
     assert "mock-local" in exported
     assert "## Synthesis" in exported
     assert "Cleaner transport." in exported
+
+
+def real_single_shot_result() -> DebateGenerationResult:
+    return DebateGenerationResult(
+        root_claim="Should cities ban cars downtown?",
+        pros=[
+            "Fewer cars can reduce collision risk for pedestrians.",
+            "Lower traffic volumes can improve local air quality.",
+            "Reclaimed street space can support public transport and walking.",
+        ],
+        cons=[
+            "Restrictions can reduce access for people who rely on cars.",
+            "Some businesses may lose customers who travel by car.",
+            "Traffic can be displaced into nearby neighborhoods.",
+        ],
+        strongest_pro="Fewer cars can reduce collision risk for pedestrians.",
+        strongest_con="Restrictions can reduce access for people who rely on cars.",
+        global_winner={"side": "pro", "reason": "The safety and air-quality benefits are broader."},
+        final_text="The strongest case favors a careful car ban with access exemptions.",
+        model_id="gpt-5.2",
+        tokens_in=123,
+        tokens_out=456,
+        created_at="2026-06-08T10:00:00+00:00",
+    )
+
+
+def test_single_shot_real_debate_completes_without_jobs(db) -> None:
+    debate = create_single_shot_debate(
+        db,
+        "Should cities ban cars downtown?",
+        generator=lambda topic: real_single_shot_result(),
+    )
+
+    assert debate.status == "complete"
+    assert debate.root_node_id
+    assert debate.completed_at
+    assert not db.scalars(select(Job)).all()
+
+    payload = debate.config["single_shot_result"]
+    assert payload["model_id"] == "gpt-5.2"
+    assert payload["tokens_in"] == 123
+    assert payload["tokens_out"] == 456
+    assert payload["created_at"]
+    assert payload["strongest_pro"] == "Fewer cars can reduce collision risk for pedestrians."
+    assert payload["strongest_con"] == "Restrictions can reduce access for people who rely on cars."
+    assert payload["global_winner"] == {"side": "pro", "reason": "The safety and air-quality benefits are broader."}
+    assert len(payload["pros"]) == 3
+    assert len(payload["cons"]) == 3
+
+    detail = debate_to_dict(db, debate)
+    assert detail["topic"] == "Should cities ban cars downtown?"
+    assert detail["tree"]["claim"] == "Should cities ban cars downtown?"
+    assert [child["node_type"] for child in detail["tree"]["children"]] == ["PRO", "PRO", "PRO", "CON", "CON", "CON"]
+    assert detail["models"] == ["gpt-5.2"]
+
+
+def test_single_shot_result_rejects_argument_count_outside_mvp_range() -> None:
+    valid = real_single_shot_result().model_dump()
+    valid["pros"] = ["Only one pro."]
+
+    try:
+        validate_single_shot_result(valid, model_id="gpt-5.2", tokens_in=1, tokens_out=1)
+    except ValueError as exc:
+        assert "pros" in str(exc)
+    else:
+        raise AssertionError("single-shot result with too few pros should fail")
+
+
+def test_single_shot_result_normalizes_plural_global_winner() -> None:
+    raw = real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})
+    raw["global_winner"] = "pros"
+
+    result = validate_single_shot_result(raw, model_id="codex-cli", tokens_in=1, tokens_out=1)
+
+    assert result.global_winner.side == "pro"
+
+
+def test_openai_debate_generator_extracts_json_and_usage(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {
+                "output_text": json.dumps(real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})),
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+
+    def fake_post(self, url, *, headers, json, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr("httpx.Client.post", fake_post)
+
+    result = OpenAIDebateGenerator(api_key="secret", model_id="gpt-5.2")("Should cities ban cars downtown?")
+
+    assert captured["url"] == "https://api.openai.com/v1/responses"
+    assert result.model_id == "gpt-5.2"
+    assert result.tokens_in == 10
+    assert result.tokens_out == 20
+    assert len(result.pros) == 3
+
+
+def test_codex_cli_debate_generator_runs_prompt_and_extracts_json(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    raw = real_single_shot_result().model_dump(exclude={"model_id", "tokens_in", "tokens_out", "created_at"})
+
+    class Completed:
+        stdout = f"Here is the result:\n{json.dumps(raw)}\n"
+        stderr = ""
+
+    def fake_run(command, *, cwd, input, capture_output, text, timeout, check):
+        captured["command"] = command
+        captured["cwd"] = cwd
+        captured["input"] = input
+        captured["timeout"] = timeout
+        return Completed()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = CodexCliDebateGenerator(command="codex", timeout_seconds=12)("Should cities ban cars downtown?")
+
+    assert captured["command"][0:2] == ["codex", "exec"]
+    assert "--sandbox" in captured["command"]
+    assert captured["command"][-1] == "-"
+    assert "Should cities ban cars downtown?" in captured["input"]
+    assert result.model_id == "codex-cli"
+    assert result.tokens_in > 0
+    assert result.tokens_out > 0
+    assert len(result.cons) == 3
 
 
 def test_markdown_export_includes_archived_generation_history(db) -> None:
@@ -1023,6 +1164,128 @@ def test_root_regeneration_replaces_visible_opening_tree(db) -> None:
     assert [child["claim"] for child in visible["tree"]["children"]] == ["New pro opening.", "New con opening."]
     root_history = db.scalars(select(Generation).where(Generation.node_id == root.id)).all()
     assert len(root_history) == 2
+
+
+def test_v2_pov_regeneration_queues_v2_jobs_and_clears_stale_work(db) -> None:
+    worker = Worker(
+        name="codex-worker",
+        token_hash=hash_token("worker-token"),
+        capabilities=["codex-gpt-5.5"],
+        last_seen=now_utc(),
+        status="online",
+    )
+    debate = Debate(topic="Should cities ban cars?", status="complete", config={"max_depth": 2, "branching": 2})
+    db.add_all([worker, debate])
+    db.flush()
+    root = Node(
+        debate_id=debate.id,
+        node_type="ROOT_CLAIM",
+        depth=0,
+        position=0,
+        claim=debate.topic,
+        status="complete",
+        materialized_path="/0",
+    )
+    db.add(root)
+    db.flush()
+    debate.root_node_id = root.id
+
+    pov_types = [
+        ("SCIENTIFIC_POV", "Scientific POV"),
+        ("STATISTICAL_POV", "Statistical POV"),
+        ("ETHICAL_POV", "Ethical POV"),
+        ("PRACTICAL_POV", "Practical POV"),
+    ]
+    pov_nodes = []
+    stale_children = []
+    for position, (node_type, label) in enumerate(pov_types):
+        pov = Node(
+            debate_id=debate.id,
+            parent_id=root.id,
+            node_type=node_type,
+            depth=1,
+            position=position,
+            claim=label,
+            status="complete",
+            materialized_path=f"/0/{position}",
+        )
+        db.add(pov)
+        db.flush()
+        generation = Generation(
+            node_id=pov.id,
+            model_id="codex-gpt-5.5",
+            role=label,
+            argument=f"{label} assessment.",
+            prompt_version="v2",
+            prompt_rendered="prompt",
+            latency_ms=10,
+            is_active=True,
+            worker_id=worker.id,
+        )
+        stale_child = Node(
+            debate_id=debate.id,
+            parent_id=pov.id,
+            node_type="PRO",
+            depth=2,
+            position=0,
+            claim=f"Old {label} child.",
+            status="complete",
+            materialized_path=f"/0/{position}/0",
+        )
+        db.add_all([generation, stale_child])
+        db.flush()
+        pov.active_generation_id = generation.id
+        pov_nodes.append((pov, label))
+        stale_children.append(stale_child)
+
+    synthesis = Synthesis(
+        debate_id=debate.id,
+        strongest_pro="Prior pro.",
+        strongest_con="Prior con.",
+        verdict="Prior verdict.",
+        model_id="codex-gpt-5.5",
+        worker_id=worker.id,
+    )
+    db.add(synthesis)
+    db.flush()
+    debate.synthesis_id = synthesis.id
+    synthesis_job = Job(
+        debate_id=debate.id,
+        job_type="v2_synthesize",
+        required_role="v2_synthesizer",
+        required_model="codex-gpt-5.5",
+        status="running",
+        worker_id=worker.id,
+        deadline=now_utc(),
+        stream_buffer="partial v2 synthesis",
+    )
+    db.add(synthesis_job)
+    db.flush()
+    worker.current_job_id = synthesis_job.id
+    db.commit()
+
+    regenerated = []
+    for pov, label in pov_nodes:
+        job = asyncio.run(regenerate_node(db, pov))
+        regenerated.append((job, label))
+
+    for job, label in regenerated:
+        assert job.job_type == "v2_pov"
+        assert job.required_role == label
+        assert job.required_model == "codex-gpt-5.5"
+    for stale_child in stale_children:
+        db.refresh(stale_child)
+        assert stale_child.status == "stale"
+    db.refresh(debate)
+    db.refresh(synthesis_job)
+    db.refresh(worker)
+    assert debate.synthesis_id is None
+    assert debate.status == "generating"
+    assert synthesis_job.status == "failed"
+    assert synthesis_job.error == "Node regeneration superseded synthesis"
+    assert synthesis_job.worker_id is None
+    assert synthesis_job.stream_buffer == ""
+    assert worker.current_job_id is None
 
 
 def test_decomposition_respects_branching_limit(db) -> None:

@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - runtime target is 3.12+, tests
 DEFAULT_COORDINATOR_DIR = Path("~/.dialectical").expanduser()
 DEFAULT_DB_PATH = DEFAULT_COORDINATOR_DIR / "db.sqlite3"
 DEFAULT_CONFIG_PATH = DEFAULT_COORDINATOR_DIR / "coordinator.toml"
+DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 RUNTIME_SETTINGS_KEY = "runtime_settings"
 MAX_PUBLIC_RATE_LIMIT_PER_MINUTE = 100_000
 MAX_WORKER_POLL_SECONDS = 300
@@ -74,7 +75,9 @@ class Settings:
     routing: dict[str, dict[str, Any]] = field(default_factory=lambda: deepcopy(DEFAULT_ROUTING))
     grok_monthly_cap_usd: float = 25.0
     openai_api_key: str | None = None
-    openai_model: str | None = None
+    openai_model: str = "codex-gpt-5.5"
+    single_shot_provider: str = "codex"
+    codex_command: str = "codex"
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -140,7 +143,10 @@ def float_env(name: str, default: float, minimum: float, maximum: float) -> floa
 
 def load_settings(path: Path | None = None) -> Settings:
     path = path or Path(os.getenv("DIALECTICAL_COORDINATOR_CONFIG", DEFAULT_CONFIG_PATH)).expanduser()
-    dotenv_values = load_dotenv_values(Path(".env"))
+    dotenv_values = {
+        **load_dotenv_values(DEFAULT_ENV_PATH),
+        **load_dotenv_values(Path(".env")),
+    }
     home = Path(os.getenv("DIALECTICAL_HOME", str(DEFAULT_COORDINATOR_DIR))).expanduser()
     db_url = os.getenv("DIALECTICAL_DATABASE_URL", f"sqlite:///{home / 'db.sqlite3'}")
     settings = Settings(home=home, database_url=db_url)
@@ -186,7 +192,7 @@ def load_settings(path: Path | None = None) -> Settings:
     settings.openai_api_key = os.getenv("OPENAI_API_KEY", dotenv_values.get("OPENAI_API_KEY"))
     settings.openai_model = clean_string(
         os.getenv("OPENAI_MODEL", dotenv_values.get("OPENAI_MODEL")),
-        settings.openai_model or "codex-gpt-5.5",
+        settings.openai_model,
     )
     settings.public_base_url = clean_string(os.getenv("DIALECTICAL_PUBLIC_BASE_URL"), settings.public_base_url)
     settings.web_origin = clean_string(os.getenv("DIALECTICAL_WEB_ORIGIN"), settings.web_origin)
@@ -220,6 +226,10 @@ def load_settings(path: Path | None = None) -> Settings:
         0.0,
         MAX_GROK_MONTHLY_CAP_USD,
     )
+    settings.single_shot_provider = clean_string(
+        os.getenv("DIALECTICAL_SINGLE_SHOT_PROVIDER"), settings.single_shot_provider
+    ).lower()
+    settings.codex_command = clean_string(os.getenv("CODEX_COMMAND"), settings.codex_command)
     return settings
 
 

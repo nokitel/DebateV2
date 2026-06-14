@@ -2,3 +2,16 @@
 .pnpm-store/
 memory/index.json
 .harness/metrics/*.jsonl
+
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+
+apps/dialectical-engine/.venv/
+apps/dialectical-engine/.venv*/
+apps/dialectical-engine/.dialectical-dev/
+apps/dialectical-engine/web/.next/
+apps/dialectical-engine/web/.next-dev*/
+apps/dialectical-engine/web/node_modules/
+apps/dialectical-engine/web/out/

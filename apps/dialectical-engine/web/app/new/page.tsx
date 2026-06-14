@@ -47,7 +47,7 @@ function NewDebateForm({ token }: { token: string }) {
       <div className="pageHeader">
         <div>
           <h1>New Debate</h1>
-          <p className="muted">Post a topic and let local workers build the tree.</p>
+          <p className="muted">Post a topic and let local workers build the Pro/Con debate tree.</p>
         </div>
       </div>
       <form className="formPanel" onSubmit={submit}>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { useState } from "react";
 import { nodeGenerations, regenerateNode } from "@/lib/api";
 import type { DebateNode, Generation } from "@/lib/types";
@@ -8,11 +8,22 @@ import type { DebateNode, Generation } from "@/lib/types";
 function nodeClass(node: DebateNode): string {
   if (node.node_type === "PRO") return "nodeCard pro";
   if (node.node_type === "CON") return "nodeCard con";
+  if (
+    node.node_type === "SCIENTIFIC_POV" ||
+    node.node_type === "STATISTICAL_POV" ||
+    node.node_type === "ETHICAL_POV" ||
+    node.node_type === "PRACTICAL_POV"
+  )
+    return "nodeCard root";
   return "nodeCard root";
 }
 
 function nodeLabel(node: DebateNode): string {
   if (node.node_type === "ROOT_CLAIM") return "Root";
+  if (node.node_type === "SCIENTIFIC_POV") return "Scientific POV";
+  if (node.node_type === "STATISTICAL_POV") return "Statistical POV";
+  if (node.node_type === "ETHICAL_POV") return "Ethical POV";
+  if (node.node_type === "PRACTICAL_POV") return "Practical POV";
   return node.node_type === "PRO" ? "Pro" : "Con";
 }
 
@@ -44,6 +55,7 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
   const [busyNode, setBusyNode] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<Generation[]>([]);
+  const [childrenOpen, setChildrenOpen] = useState(node.node_type === "ROOT_CLAIM");
 
   async function regenerate(id: string) {
     if (!token) return;
@@ -74,22 +86,34 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
     }
   }
 
+  function toggleChildrenFromCard(event: MouseEvent<HTMLElement>) {
+    if (!canToggleChildren) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("button, a, input, textarea, select, .historyPanel")) return;
+    setChildrenOpen((current) => !current);
+  }
+
   const generation = node.active_generation;
   const argument = generation?.argument || (node.status === "pending" ? "Queued" : "");
+  const hasChildren = node.children.length > 0;
+  const canToggleChildren = hasChildren && node.node_type !== "ROOT_CLAIM";
   const workerName = generation?.worker_name || generation?.worker_id;
   const activeModelColor = generation ? modelColor(generation.model_id) : undefined;
   const modelStyle = generation
     ? ({ "--model-color": activeModelColor, "--node-model-color": activeModelColor } as CSSProperties)
     : undefined;
+  const childLayout = node.node_type === "ROOT_CLAIM" ? "root-povs" : "vertical";
   return (
-    <div className="tree">
+    <div className="tree" data-node-type={node.node_type}>
       <article
-        className={nodeClass(node)}
+        className={[nodeClass(node), canToggleChildren ? "expandable" : ""].filter(Boolean).join(" ")}
         style={modelStyle}
         data-node-type={node.node_type}
         data-model-id={generation?.model_id}
         data-worker-name={workerName}
         data-model-color={activeModelColor}
+        data-children-open={canToggleChildren ? childrenOpen : undefined}
+        onClick={toggleChildrenFromCard}
       >
         <div className="nodeTop">
           <div>
@@ -117,7 +141,14 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
             </div>
           ) : null}
         </div>
-        <div className={node.status === "generating" || node.status === "pending" ? "argument cursor" : "argument"}>
+        <div
+          className={[
+            node.status === "generating" || node.status === "pending" ? "argument cursor" : "argument",
+            canToggleChildren ? "argumentToggle" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           {argument}
         </div>
         {historyOpen ? (
@@ -142,8 +173,11 @@ export function DebateTree({ node, token, onQueued, onError, onAuthRejected }: D
           </div>
         ) : null}
       </article>
-      {node.children.length ? (
-        <div className="children">
+      {hasChildren && childrenOpen ? (
+        <div
+          className={["children", childLayout === "root-povs" ? "rootPovChildren" : ""].filter(Boolean).join(" ")}
+          data-child-layout={childLayout}
+        >
           {node.children.map((child) => (
             <DebateTree
               key={child.id}

@@ -10,6 +10,8 @@ import httpx
 
 from app.config import WorkerConfig, save_config
 
+MAX_FAILURE_REASON_CHARS = 2_000
+
 
 def retryable_stream_error(exc: Exception) -> bool:
     if isinstance(exc, httpx.RequestError):
@@ -165,6 +167,6 @@ class CoordinatorClient:
         response = await self.client.post(
             f"/api/jobs/{job_id}/fail",
             headers=self.worker_headers,
-            json={"reason": reason, "retryable": retryable},
+            json={"reason": reason[:MAX_FAILURE_REASON_CHARS], "retryable": retryable},
         )
         response.raise_for_status()
