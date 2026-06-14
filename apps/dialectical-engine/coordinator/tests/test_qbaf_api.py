@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.api import qbaf as qbaf_api
 from app.main import app
 from app.metareasoning import StoppingDecision
-from app.orchestration import InMemoryQBAFRunRepository, OrchestratorRun, run_to_record
+from app.orchestration import InMemoryQBAFRunRepository, Neo4jQBAFRunRepository, OrchestratorRun, run_to_record
 from app.qbaf import ClaimNode, QBAFGraph
 
 
@@ -60,6 +60,59 @@ def test_in_memory_qbaf_run_repository_persists_and_retrieves_graph() -> None:
     assert repository.get(record.id) == record
     assert repository.list()[0].id == record.id
     assert repository.get(record.id).graph["root_id"] == "root"
+
+
+def test_neo4j_qbaf_run_repository_uses_injected_driver() -> None:
+    class FakeResult:
+        def __init__(self, row=None) -> None:
+            self.row = row
+
+        def single(self):
+            return self.row
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.records = {}
+            self.queries = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def execute_write(self, callback, record):
+            return callback(self, record)
+
+        def execute_read(self, callback, run_id):
+            return callback(self, run_id)
+
+        def run(self, query, **params):
+            self.queries.append((query, params))
+            if query.strip().startswith("MERGE"):
+                self.records[params["id"]] = dict(params)
+                return FakeResult()
+            record = self.records.get(params["id"])
+            if record is None:
+                return FakeResult()
+            return FakeResult({"record": record})
+
+    class FakeDriver:
+        def __init__(self) -> None:
+            self.session_obj = FakeSession()
+
+        def session(self):
+            return self.session_obj
+
+    driver = FakeDriver()
+    repository = Neo4jQBAFRunRepository(driver)
+    record = run_to_record(sample_run(), topic="Remote work improves productivity", run_id="run-1")
+
+    repository.save(record)
+    reloaded = repository.get("run-1")
+
+    assert reloaded == record
+    assert driver.session_obj.queries[0][0].strip().startswith("MERGE")
 
 
 def test_qbaf_api_starts_persists_and_fetches_run(db, monkeypatch) -> None:
