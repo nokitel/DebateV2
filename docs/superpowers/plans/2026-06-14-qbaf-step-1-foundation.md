@@ -60,7 +60,7 @@ make test
 **Files:**
 - Create: `apps/dialectical-engine/coordinator/tests/test_qbaf_foundation.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/dialectical-engine/coordinator/tests/test_qbaf_foundation.py`:
 
@@ -116,7 +116,7 @@ def test_coordinator_config_loads_openai_values_from_dotenv(
     assert settings.openai_model == "codex-gpt-5.5"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -136,7 +136,7 @@ Expected: FAIL because `app.qbaf` does not exist and `Settings` has no `openai_a
 **Files:**
 - Modify: `apps/dialectical-engine/AGENTS.md`
 
-- [ ] **Step 1: Add Proposal B guardrails**
+- [x] **Step 1: Add Proposal B guardrails**
 
 Append this section to `apps/dialectical-engine/AGENTS.md`:
 
@@ -172,7 +172,7 @@ Definition of Done, exact tests, and a short plan; each Step ends with tests and
 a clear commit.
 ```
 
-- [ ] **Step 2: Re-run the guardrail assertion**
+- [x] **Step 2: Re-run the guardrail assertion**
 
 Run:
 
@@ -192,7 +192,7 @@ Expected: PASS.
 **Files:**
 - Create: `apps/dialectical-engine/coordinator/app/qbaf/__init__.py`
 
-- [ ] **Step 1: Create the package marker**
+- [x] **Step 1: Create the package marker**
 
 Create `apps/dialectical-engine/coordinator/app/qbaf/__init__.py`:
 
@@ -204,7 +204,7 @@ FOUNDATION_STEP = "proposal-b-step-1"
 __all__ = ["FOUNDATION_STEP"]
 ```
 
-- [ ] **Step 2: Re-run the import assertion**
+- [x] **Step 2: Re-run the import assertion**
 
 Run:
 
@@ -224,7 +224,7 @@ Expected: PASS.
 **Files:**
 - Modify: `apps/dialectical-engine/coordinator/app/core/config.py`
 
-- [ ] **Step 1: Add settings fields**
+- [x] **Step 1: Add settings fields**
 
 Update the `Settings` dataclass:
 
@@ -246,7 +246,7 @@ class Settings:
     openai_model: str | None = None
 ```
 
-- [ ] **Step 2: Add a tiny dotenv loader**
+- [x] **Step 2: Add a tiny dotenv loader**
 
 Add this helper above `load_settings`:
 
@@ -268,7 +268,7 @@ def load_dotenv_values(path: Path) -> dict[str, str]:
     return values
 ```
 
-- [ ] **Step 3: Use `.env` values without overriding real env vars**
+- [x] **Step 3: Use `.env` values without overriding real env vars**
 
 At the start of `load_settings`, after resolving `path`, add:
 
@@ -286,7 +286,7 @@ Then set the new fields near the existing environment-backed settings:
     )
 ```
 
-- [ ] **Step 4: Re-run the dotenv assertion**
+- [x] **Step 4: Re-run the dotenv assertion**
 
 Run:
 
@@ -306,7 +306,7 @@ Expected: PASS.
 **Files:**
 - Verify all Step 1 files.
 
-- [ ] **Step 1: Run focused Step 1 tests**
+- [x] **Step 1: Run focused Step 1 tests**
 
 Run:
 
@@ -319,7 +319,7 @@ python -m pytest -p pytest_asyncio.plugin tests/test_qbaf_foundation.py -q
 
 Expected: all tests PASS.
 
-- [ ] **Step 2: Attempt full app tests**
+- [x] **Step 2: Attempt full app tests**
 
 Run:
 
@@ -330,7 +330,7 @@ make test
 
 Expected: full tests PASS. If the local environment lacks dependencies or a Python runtime compatible with the Makefile, record the exact failure and keep the focused test result as the Step 1 proof.
 
-- [ ] **Step 3: Review git diff**
+- [x] **Step 3: Review git diff**
 
 Run:
 
@@ -340,7 +340,7 @@ git diff -- apps/dialectical-engine/AGENTS.md apps/dialectical-engine/coordinato
 
 Expected: only Step 1 foundation changes appear.
 
-- [ ] **Step 4: Commit Step 1**
+- [x] **Step 4: Commit Step 1**
 
 Run:
 

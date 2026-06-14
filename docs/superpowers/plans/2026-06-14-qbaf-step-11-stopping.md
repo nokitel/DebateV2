@@ -104,7 +104,7 @@ Run the full app test command above.
 
 Check `git diff --stat` and `git diff`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Stage Step 11 files and commit with:
 

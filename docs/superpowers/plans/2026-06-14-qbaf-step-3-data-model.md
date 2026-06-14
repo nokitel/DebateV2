@@ -59,7 +59,7 @@ make test PYTHON=/Users/stefan.nour/Library/CloudStorage/OneDrive-adessoGroup/De
 **Files:**
 - Create: `apps/dialectical-engine/coordinator/tests/test_qbaf_model.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/dialectical-engine/coordinator/tests/test_qbaf_model.py`:
 
@@ -143,7 +143,7 @@ def test_graph_rejects_invalid_edges() -> None:
         Edge(source_id="root", target_id="root", polarity="support", weight=2.0)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -164,7 +164,7 @@ Expected: FAIL because `ClaimNode`, `Edge`, and `QBAFGraph` are not exported yet
 - Create: `apps/dialectical-engine/coordinator/app/qbaf/model.py`
 - Modify: `apps/dialectical-engine/coordinator/app/qbaf/__init__.py`
 
-- [ ] **Step 1: Implement model dataclasses**
+- [x] **Step 1: Implement model dataclasses**
 
 Create `apps/dialectical-engine/coordinator/app/qbaf/model.py`:
 
@@ -326,7 +326,7 @@ class QBAFGraph:
         return cls.from_dict(json.loads(payload))
 ```
 
-- [ ] **Step 2: Export model types**
+- [x] **Step 2: Export model types**
 
 Update `apps/dialectical-engine/coordinator/app/qbaf/__init__.py`:
 
@@ -347,7 +347,7 @@ __all__ = ["ClaimNode", "Edge", "FOUNDATION_STEP", "QBAFGraph"]
 **Files:**
 - Verify all Step 3 files.
 
-- [ ] **Step 1: Run focused model tests**
+- [x] **Step 1: Run focused model tests**
 
 Run:
 
@@ -360,7 +360,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
 
 Expected: all tests PASS.
 
-- [ ] **Step 2: Run full app tests**
+- [x] **Step 2: Run full app tests**
 
 Run:
 
@@ -371,7 +371,7 @@ make test PYTHON=/Users/stefan.nour/Library/CloudStorage/OneDrive-adessoGroup/De
 
 Expected: full tests PASS.
 
-- [ ] **Step 3: Review git diff**
+- [x] **Step 3: Review git diff**
 
 Run:
 
@@ -381,7 +381,7 @@ git diff -- apps/dialectical-engine/coordinator/app/qbaf apps/dialectical-engine
 
 Expected: only Step 3 data-model changes appear.
 
-- [ ] **Step 4: Commit Step 3**
+- [x] **Step 4: Commit Step 3**
 
 Run:
 

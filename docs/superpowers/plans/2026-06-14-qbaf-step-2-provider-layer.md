@@ -67,7 +67,7 @@ make test PYTHON=/Users/stefan.nour/Library/CloudStorage/OneDrive-adessoGroup/De
 **Files:**
 - Create: `apps/dialectical-engine/coordinator/tests/test_providers.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `apps/dialectical-engine/coordinator/tests/test_providers.py`:
 
@@ -171,7 +171,7 @@ def test_proposal_engine_modules_outside_providers_do_not_reference_vendors() ->
     assert offenders == []
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -191,7 +191,7 @@ Expected: FAIL because `app.providers` and `config/agents.yaml` do not exist.
 **Files:**
 - Create: `apps/dialectical-engine/config/agents.yaml`
 
-- [ ] **Step 1: Create the role config**
+- [x] **Step 1: Create the role config**
 
 Create `apps/dialectical-engine/config/agents.yaml`:
 
@@ -220,7 +220,7 @@ agents:
 - Create: `apps/dialectical-engine/coordinator/app/providers/base.py`
 - Create: `apps/dialectical-engine/coordinator/app/providers/__init__.py`
 
-- [ ] **Step 1: Create base provider contracts**
+- [x] **Step 1: Create base provider contracts**
 
 Create `apps/dialectical-engine/coordinator/app/providers/base.py`:
 
@@ -258,7 +258,7 @@ class LLMProvider(Protocol):
         ...
 ```
 
-- [ ] **Step 2: Create initial exports**
+- [x] **Step 2: Create initial exports**
 
 Create `apps/dialectical-engine/coordinator/app/providers/__init__.py`:
 
@@ -281,7 +281,7 @@ __all__ = [
 - Create: `apps/dialectical-engine/coordinator/app/providers/codex_cli.py`
 - Modify: `apps/dialectical-engine/coordinator/app/providers/__init__.py`
 
-- [ ] **Step 1: Create deterministic fake provider**
+- [x] **Step 1: Create deterministic fake provider**
 
 Create `apps/dialectical-engine/coordinator/app/providers/fake.py`:
 
@@ -316,7 +316,7 @@ class FakeProvider:
         )
 ```
 
-- [ ] **Step 2: Create Codex CLI provider**
+- [x] **Step 2: Create Codex CLI provider**
 
 Create `apps/dialectical-engine/coordinator/app/providers/codex_cli.py`:
 
@@ -404,7 +404,7 @@ class CodexCliProvider:
         return "\n\n".join(parts)
 ```
 
-- [ ] **Step 3: Export providers**
+- [x] **Step 3: Export providers**
 
 Update `apps/dialectical-engine/coordinator/app/providers/__init__.py`:
 
@@ -430,7 +430,7 @@ __all__ = [
 - Create: `apps/dialectical-engine/coordinator/app/providers/registry.py`
 - Modify: `apps/dialectical-engine/coordinator/app/providers/__init__.py`
 
-- [ ] **Step 1: Create registry and config loading**
+- [x] **Step 1: Create registry and config loading**
 
 Create `apps/dialectical-engine/coordinator/app/providers/registry.py`:
 
@@ -520,7 +520,7 @@ class ProviderRegistry:
         )
 ```
 
-- [ ] **Step 2: Export registry**
+- [x] **Step 2: Export registry**
 
 Update `apps/dialectical-engine/coordinator/app/providers/__init__.py`:
 
@@ -549,7 +549,7 @@ __all__ = [
 **Files:**
 - Verify all Step 2 files.
 
-- [ ] **Step 1: Run focused provider tests**
+- [x] **Step 1: Run focused provider tests**
 
 Run:
 
@@ -562,7 +562,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
 
 Expected: all tests PASS.
 
-- [ ] **Step 2: Run full app tests**
+- [x] **Step 2: Run full app tests**
 
 Run:
 
@@ -573,7 +573,7 @@ make test PYTHON=/Users/stefan.nour/Library/CloudStorage/OneDrive-adessoGroup/De
 
 Expected: full tests PASS.
 
-- [ ] **Step 3: Review git diff**
+- [x] **Step 3: Review git diff**
 
 Run:
 
@@ -583,7 +583,7 @@ git diff -- apps/dialectical-engine/config/agents.yaml apps/dialectical-engine/c
 
 Expected: only Step 2 provider-layer changes appear.
 
-- [ ] **Step 4: Commit Step 2**
+- [x] **Step 4: Commit Step 2**
 
 Run:
 
