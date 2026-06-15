@@ -2,6 +2,7 @@
 .pnpm-store/
 memory/index.json
 .harness/metrics/*.jsonl
+.worktrees/
 
 **/__pycache__/
 **/*.py[cod]
