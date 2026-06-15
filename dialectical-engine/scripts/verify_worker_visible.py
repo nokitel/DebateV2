@@ -12,6 +12,9 @@ from typing import Any
 from uuid import UUID
 
 
+STATUS_USER_AGENT = "Mozilla/5.0 (compatible; DialecticalEngineStatus/1.0; +https://dezbatere.ro)"
+
+
 class VisibilityError(RuntimeError):
     pass
 
@@ -152,7 +155,7 @@ def worker_visibility_detail(payload: dict[str, Any], worker_name: str) -> str:
 def fetch_status(base_url: str, timeout: float) -> dict[str, Any]:
     request = urllib.request.Request(
         base_url.rstrip("/") + "/api/backends/status",
-        headers={"Accept": "application/json"},
+        headers={"Accept": "application/json", "User-Agent": STATUS_USER_AGENT},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = json.loads(response.read().decode("utf-8"))

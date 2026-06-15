@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -57,6 +58,35 @@ def test_worker_visibility_detail_requires_named_online_worker_with_capabilities
     )
 
     assert detail == "adesso-mbp:online (2 capabilities)"
+
+
+def test_fetch_status_sends_browser_like_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module(ROOT / "scripts" / "verify_worker_visible.py", "dialectical_verify_worker_fetch")
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"workers": []}).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+
+    assert module.fetch_status("https://dezbatere.ro/", 7) == {"workers": []}
+    assert captured["url"] == "https://dezbatere.ro/api/backends/status"
+    assert captured["headers"]["Accept"] == "application/json"
+    assert captured["headers"]["User-agent"] == module.STATUS_USER_AGENT
+    assert captured["timeout"] == 7
 
 
 def test_worker_status_detail_accepts_offline_worker_without_capabilities() -> None:
