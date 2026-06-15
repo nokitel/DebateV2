@@ -25,6 +25,13 @@ def test_worker_install_targets_forward_allowed_models() -> None:
     ) in makefile
 
 
+def test_make_test_loads_pytest_cov_plugin_module_when_autoload_is_disabled() -> None:
+    makefile = (ROOT / "Makefile").read_text()
+
+    assert "-p pytest_cov.plugin" in makefile
+    assert "-p pytest_cov " not in makefile
+
+
 def test_makefile_exposes_explicit_quick_tunnel_stop_target() -> None:
     makefile = (ROOT / "Makefile").read_text()
 
