@@ -36,6 +36,7 @@ CLAUDE_MODEL = "claude-sonnet-4-6"
 GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_LM_STUDIO_CAPABILITY = "lmstudio:google_gemma-4-e4b-it"
 DEFAULT_CLOUDFLARED_DIR = Path("~/.cloudflared").expanduser()
+HEALTH_CHECK_USER_AGENT = "Mozilla/5.0 (compatible; DialecticalHealthCheck/1.0; +https://dezbatere.ro)"
 DEFAULT_QUICK_TUNNEL_LOGS = [
     Path("/tmp/dialectical-cloudflared-quick.err.log"),
     Path("/tmp/dialectical-cloudflared-quick.out.log"),
@@ -128,8 +129,9 @@ def run(command: list[str], *, timeout: float = 8.0, env: dict[str, str] | None 
 
 
 def http_json(url: str, *, timeout: float = 5.0) -> dict[str, object]:
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT})
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read()
             payload = json.loads(body.decode("utf-8"))
             return {"ok": True, "status": response.status, "payload": payload}
@@ -138,8 +140,9 @@ def http_json(url: str, *, timeout: float = 5.0) -> dict[str, object]:
 
 
 def http_text(url: str, *, timeout: float = 5.0) -> dict[str, object]:
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT})
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read(2048)
             return {
                 "ok": 200 <= response.status < 400,
@@ -151,7 +154,7 @@ def http_text(url: str, *, timeout: float = 5.0) -> dict[str, object]:
 
 
 def http_head(url: str, *, timeout: float = 5.0) -> dict[str, object]:
-    request = urllib.request.Request(url, method="HEAD")
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT}, method="HEAD")
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return {"ok": 200 <= response.status < 400, "status": response.status}
@@ -249,7 +252,7 @@ def lm_studio_status(base_url: str, model: str, probe: bool) -> dict[str, object
                     "max_tokens": 5,
                 }
             ).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "User-Agent": HEALTH_CHECK_USER_AGENT},
             method="POST",
         )
         try:

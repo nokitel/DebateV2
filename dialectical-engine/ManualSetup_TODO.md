@@ -6,7 +6,7 @@ Generated from local reports. Re-run with:
 make setup-status
 ```
 
-Generated at: `2026-05-28T19:38:39.098359+00:00`
+Generated at: `2026-06-15T20:30:10.635617+00:00`
 Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 
 ## Current Proof
@@ -16,8 +16,8 @@ Tracking issue: https://github.com/DebateAIRO/debateairo/issues/5
 - [x] At least one local worker is online.
 - [x] `codex-gpt-5.5` is enabled on the local worker.
 - [x] `lmstudio:google_gemma-4-e4b-it` is enabled and loaded.
-- [x] `make local-single-machine-acceptance` passes.
-- [x] Temporary Cloudflare quick tunnel currently works.
+- [ ] `make local-single-machine-acceptance` passes.
+- [ ] Temporary Cloudflare quick tunnel currently works.
 
 ## Remaining Account/Auth Work
 
@@ -36,15 +36,15 @@ make local-status
 
 ## Remaining Domain/Hosting Work
 
-- [ ] `dezbatere.ro` delegates to Cloudflare nameservers.
-- [ ] `cloudflared tunnel login` has created `~/.cloudflared/cert.pem`.
-- [ ] Named Cloudflare tunnel config and credentials are ready.
-- [ ] Named Cloudflare tunnel launchd service is loaded.
-- [ ] `https://dezbatere.ro/api/backends/status` serves the local app.
-- [ ] `https://dezbatere.ro/` serves the web UI and static assets.
+- [x] `dezbatere.ro` delegates to Cloudflare nameservers.
+- [x] `cloudflared tunnel login` has created `~/.cloudflared/cert.pem`.
+- [x] Named Cloudflare tunnel config and credentials are ready.
+- [x] Named Cloudflare tunnel launchd service is loaded.
+- [x] `https://dezbatere.ro/api/backends/status` serves the local app.
+- [x] `https://dezbatere.ro/` serves the web UI and static assets.
 
-Current registry nameservers: `ns1.romarg.com., ns2.romarg.com., ns3.romarg.com., ns4.romarg.com.`
-Hosting next action: Add dezbatere.ro to Cloudflare, run `make prepare-romarg-nameservers` with the assigned nameservers, update Romarg, then run `make wait-dezbatere-dns`.
+Current registry nameservers: `pat.ns.cloudflare.com., toby.ns.cloudflare.com.`
+Hosting next action: Named domain is serving the app; run final `make local-status` and stop any remaining quick tunnel if needed.
 
 Manual order:
 

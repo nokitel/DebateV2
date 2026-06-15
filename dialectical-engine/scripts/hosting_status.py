@@ -17,6 +17,7 @@ DEFAULT_DOMAIN = "dezbatere.ro"
 DEFAULT_WEB_URL = "http://127.0.0.1:3000"
 DEFAULT_CLOUDFLARED_DIR = Path("~/.cloudflared").expanduser()
 DEFAULT_REPORT = Path("/private/tmp/dialectical-hosting-status.json")
+HEALTH_CHECK_USER_AGENT = "Mozilla/5.0 (compatible; DialecticalHealthCheck/1.0; +https://dezbatere.ro)"
 QUICK_TUNNEL_LOGS = [
     Path("/tmp/dialectical-cloudflared-quick.err.log"),
     Path("/tmp/dialectical-cloudflared-quick.out.log"),
@@ -52,8 +53,9 @@ def run(command: list[str], *, timeout: int = 8) -> dict[str, Any]:
 
 
 def http_json(url: str, *, timeout: int = 5) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT})
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
             return {"ok": True, "status": response.status, "payload": payload}
     except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
@@ -61,8 +63,9 @@ def http_json(url: str, *, timeout: int = 5) -> dict[str, Any]:
 
 
 def http_text(url: str, *, timeout: int = 5) -> dict[str, Any]:
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT})
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read(8192)
             return {
                 "ok": 200 <= response.status < 400,
@@ -74,7 +77,7 @@ def http_text(url: str, *, timeout: int = 5) -> dict[str, Any]:
 
 
 def http_head(url: str, *, timeout: int = 5) -> dict[str, Any]:
-    request = urllib.request.Request(url, method="HEAD")
+    request = urllib.request.Request(url, headers={"User-Agent": HEALTH_CHECK_USER_AGENT}, method="HEAD")
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return {"ok": 200 <= response.status < 400, "status": response.status}

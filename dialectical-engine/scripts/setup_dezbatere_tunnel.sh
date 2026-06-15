@@ -40,6 +40,32 @@ is_cloudflare_delegation() {
     '
 }
 
+tunnel_id_from_json() {
+    TUNNEL_JSON="$1" python3 - "$TUNNEL_NAME" <<'PY'
+import json
+import os
+import sys
+
+name = sys.argv[1]
+data = json.loads(os.environ.get("TUNNEL_JSON") or "[]") or []
+if not isinstance(data, list):
+    data = []
+
+
+def is_active(item):
+    deleted_at = str(item.get("deleted_at") or "")
+    return not deleted_at or deleted_at.startswith("0001-01-01")
+
+
+for item in data:
+    if item.get("name") == name and is_active(item):
+        print(item.get("id") or "")
+        break
+else:
+    print("")
+PY
+}
+
 mkdir -p "$CLOUDFLARED_DIR"
 
 if [ "$SKIP_SERVICE_PREFLIGHT" != "1" ] && [ "$SKIP_SERVICE_PREFLIGHT" != "true" ] && [ "$SKIP_SERVICE_PREFLIGHT" != "yes" ]; then
@@ -81,14 +107,14 @@ if [ ! -r "$CLOUDFLARED_DIR/cert.pem" ]; then
     exit 2
 fi
 
-tunnel_json="$($CLOUDFLARED tunnel list --name "$TUNNEL_NAME" --output json)"
-tunnel_id="$(printf '%s' "$tunnel_json" | python3 -c 'import json,sys; data=json.load(sys.stdin); matches=[item for item in data if item.get("name")==sys.argv[1] and not item.get("deleted_at")]; print(matches[0]["id"] if matches else "")' "$TUNNEL_NAME")"
+tunnel_json="$($CLOUDFLARED tunnel list --output json)"
+tunnel_id="$(tunnel_id_from_json "$tunnel_json")"
 
 if [ -z "$tunnel_id" ]; then
     echo "Creating Cloudflare tunnel: $TUNNEL_NAME"
     $CLOUDFLARED tunnel create "$TUNNEL_NAME"
-    tunnel_json="$($CLOUDFLARED tunnel list --name "$TUNNEL_NAME" --output json)"
-    tunnel_id="$(printf '%s' "$tunnel_json" | python3 -c 'import json,sys; data=json.load(sys.stdin); matches=[item for item in data if item.get("name")==sys.argv[1] and not item.get("deleted_at")]; print(matches[0]["id"] if matches else "")' "$TUNNEL_NAME")"
+    tunnel_json="$($CLOUDFLARED tunnel list --output json)"
+    tunnel_id="$(tunnel_id_from_json "$tunnel_json")"
 fi
 
 if [ -z "$tunnel_id" ]; then
