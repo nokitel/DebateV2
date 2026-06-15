@@ -4,6 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { API_BASE, clearStoredToken, getDebate, getStoredToken, setStoredToken, validateUserToken } from "@/lib/api";
 import type { DebateDetail, DebateNode, SingleShotResult } from "@/lib/types";
 import { DebateTree } from "@/components/DebateTree";
+import { ArgumentFocusView } from "@/components/ArgumentFocusView";
+import { findNodeById, findNodePathById, initialFocusedNodeId, nearestExistingNodeId } from "@/lib/debateTreeUtils";
 
 type SynthesisDraft = {
   model_id?: string;
@@ -162,6 +164,10 @@ export default function DebatePageClient({
   const [actionToken, setActionToken] = useState<string | null>(null);
   const [tokenDraft, setTokenDraft] = useState("");
   const [tokenBusy, setTokenBusy] = useState(false);
+  const [fullTreeOpen, setFullTreeOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() =>
+    initialDebate?.tree ? initialFocusedNodeId(initialDebate.tree) : null
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -181,6 +187,10 @@ export default function DebatePageClient({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    setSelectedNodeId((current) => (debate?.tree ? nearestExistingNodeId(debate.tree, current) : null));
+  }, [debate?.tree]);
 
   useEffect(() => {
     let active = true;
@@ -306,6 +316,14 @@ export default function DebatePageClient({
   }, [id, refresh]);
 
   const exportUrl = useMemo(() => `${API_BASE}/api/debates/${id}/export.md`, [id]);
+  const selectedPath = useMemo(
+    () => (debate?.tree && selectedNodeId ? findNodePathById(debate.tree, selectedNodeId) : []),
+    [debate?.tree, selectedNodeId]
+  );
+  const selectedNode = useMemo(
+    () => (debate?.tree && selectedNodeId ? findNodeById(debate.tree, selectedNodeId) : null),
+    [debate?.tree, selectedNodeId]
+  );
   const strongestPro =
     debate?.synthesis?.strongest_pro || partialJsonField(synthesisDraft?.raw || "", "strongest_pro") || "Pending";
   const strongestCon =
@@ -391,8 +409,8 @@ export default function DebatePageClient({
             ))}
           </div>
         </div>
-        <a href={exportUrl}>
-          <button className="secondary">Export Markdown</button>
+        <a className="secondaryButton" href={exportUrl}>
+          Export Markdown
         </a>
       </div>
       <div className="actionAuthBar">
@@ -522,17 +540,43 @@ export default function DebatePageClient({
           </section>
         </div>
       ) : null}
-      <div className="treeViewport">
-        {debate.tree ? (
-          <DebateTree
-            node={debate.tree}
-            token={actionToken}
-            onQueued={refresh}
-            onError={setError}
-            onAuthRejected={rejectActionToken}
-          />
-        ) : null}
-      </div>
+      {debate.tree && selectedNode && selectedPath.length > 0 ? (
+        <ArgumentFocusView
+          rootNode={debate.tree}
+          selectedNode={selectedNode}
+          selectedPath={selectedPath}
+          token={actionToken}
+          onQueued={refresh}
+          onError={setError}
+          onAuthRejected={rejectActionToken}
+          onSelectNode={setSelectedNodeId}
+        />
+      ) : null}
+      {debate.tree ? (
+        <section className="fullTreePanel" aria-label="Full recursive debate tree">
+          <button
+            className="secondary fullTreeToggle"
+            type="button"
+            aria-expanded={fullTreeOpen}
+            onClick={() => setFullTreeOpen((current) => !current)}
+          >
+            {fullTreeOpen ? "Hide full tree" : "Show full tree"}
+          </button>
+          {fullTreeOpen ? (
+            <div className="treeViewport treeViewportSubordinate">
+              <DebateTree
+                node={debate.tree}
+                token={actionToken}
+                onQueued={refresh}
+                onError={setError}
+                onAuthRejected={rejectActionToken}
+                onSelectNode={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+              />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       <div className="synthesisPanel">
         <section>
           <h2>Strongest Pro</h2>
