@@ -101,10 +101,6 @@ def model_monthly_spend_usd_by_model(db: Session, model_ids: list[str], now: dat
     return {model_id: model_monthly_spend_usd(db, model_id, now=now) for model_id in model_ids}
 
 
-def grok_cap_reached(db: Session) -> bool:
-    return model_cap_reached(db, GROK_MODEL_ID)
-
-
 def model_cap_reached(db: Session, model_id: str) -> bool:
     caps = model_monthly_caps_usd(db)
     if model_id not in caps:

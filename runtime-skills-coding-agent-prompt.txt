@@ -1,0 +1,217 @@
+You are the coding agent for Dialectical Engine V2. Use the Disciplined Delivery workflow. Implement a runtime skill system for V2 subagents, following this plan exactly and keeping changes small, test-first, and close to the existing architecture.
+
+Context:
+- Repo root: C:/Users/vladm/Desktop/debate/DebateV2
+- App root: dialectical-engine
+- Inspect first:
+  - dialectical-engine/coordinator/app/services/dialectical_v2.py
+  - dialectical-engine/coordinator/app/models/entities.py
+  - dialectical-engine/coordinator/tests/test_dialectical_v2.py
+  - dialectical-engine/coordinator/app/services/orchestrator.py
+  - dialectical-engine/coordinator/app/services/serialization.py
+  - dialectical-engine/coordinator/app/core/db.py
+
+Feature:
+Implement runtime skills for Dialectical Engine V2 subagents. A skill is temporary cognitive scaffolding. It does not execute code. It does not grant tools. It does not grant permissions. It shapes subagent identity, reasoning method, search strategy, evidence standards, and constraints.
+
+Critical requirements:
+- Skills persist in DB as JSON using existing SkillDefinition.definition.
+- When needed, skill JSON must be materialized into a real temporary SKILL.md.
+- The temp SKILL.md is mandatory.
+- Path format: runtime/skills/{debate_id}/{job_id}/{skill_id}/SKILL.md
+- The temp markdown must be deleted after the question/job is fully answered.
+- Delete temp markdown on success and failure.
+- JSON persists after markdown deletion.
+- Skills are under-the-hood only. Users must not see selected skills, skills used, or skill provenance in normal API/UI responses.
+- Provenance must still be recorded internally.
+- Subagents using these skills must research from official documentation/public primary sources only.
+- Code/tool calls are forbidden inside skills.
+- Accessing random internet DBs is forbidden.
+- Accessing private/non-public data or breaking into databases is forbidden.
+- Created skills are usable immediately and reusable immediately for now.
+- Retrieval is semantic research/matching for now, but keep it simple and testable.
+
+Runtime skill schema:
+{
+  "kind": "runtime_skill",
+  "name": "statistical-analysis",
+  "version": 1,
+  "status": "provisional",
+  "description": "Use when the task benefits from statistical reasoning about evidence, uncertainty, or inference.",
+  "subagent_identity": "You are a careful statistician...",
+  "method": ["Check base rates", "Separate measurement from inference"],
+  "search_guidance": ["Use only official documentation, public primary sources, standards, regulations, filings, or institutional documents relevant to the domain."],
+  "constraints": ["Do not run code", "Do not request tools", "Do not use private or non-public data"],
+  "source_policy": {
+    "allowed_sources": ["official_documentation", "public_primary_sources"],
+    "forbidden_sources": ["private_databases", "credential-gated_leaks", "random_web_databases"]
+  },
+  "quality": {
+    "quality_score": null,
+    "reuse_count": 0,
+    "last_used_at": null
+  },
+  "provenance": {
+    "created_by_model": "...",
+    "created_by_worker_id": "...",
+    "created_in_debate_id": "...",
+    "created_by_job_id": "..."
+  }
+}
+
+Status lifecycle:
+- provisional
+- active
+- rejected
+- deprecated
+
+Selection:
+- Coordinator owns retrieval.
+- Use debate topic + POV label + POV lens description as retrieval context.
+- Reuse valid provisional or active skills.
+- Skip rejected/deprecated/invalid skills.
+- Select one primary skill per POV for now.
+- Different POVs may receive different relevant skills.
+
+Current architecture notes:
+- Active V2 flow currently queues four v2_pov jobs, then v2_synthesize.
+- Older v2_plan, v2_skill_create, v2_agent_create, v2_agent_run, and v2_agent_argument code exists but is mostly dormant.
+- Start by integrating runtime skills into the active v2_pov path.
+- Existing models already include SkillDefinition, AgentDefinition, AgentRun, CapabilityMatch, and ProvenanceRecord.
+- Current serializer exposes skill/provenance data; this must be hidden/gated for normal debate responses.
+
+Implementation order:
+1. Write tests for runtime skill schema validation.
+2. Implement schema validator.
+3. Write tests for SKILL.md materialization and cleanup.
+4. Implement runtime_skills.py.
+5. Write tests for POV skill retrieval.
+6. Implement retrieval against persisted SkillDefinition.
+7. Write tests for missing skill creation.
+8. Implement/update v2_skill_create runtime skill flow.
+9. Write tests for v2_pov prompt including materialized skill content.
+10. Inject skill content into v2_pov prompt.
+11. Write tests for internal provenance.
+12. Implement internal provenance.
+13. Write API tests proving skill details are hidden.
+14. Update serializer to hide/gate skill data.
+15. Write stale cleanup tests.
+16. Implement stale cleanup.
+17. Add full V2 smoke tests.
+
+Minimal subtasks:
+- schema-01 Define runtime skill JSON required fields.
+- schema-02 Define allowed statuses: provisional, active, rejected, deprecated.
+- schema-03 Add subagent_identity as required.
+- schema-04 Add source_policy with official/public-only constraints.
+- schema-05 Add validation for required fields.
+- schema-06 Reject executable/code/tool-call language.
+- schema-07 Reject private/non-public/random DB access language.
+- schema-08 Normalize safe runtime skill JSON.
+- schema-09 Add tests for valid skill.
+- schema-10 Add tests for malformed/unsafe skills.
+- materialize-01 Create runtime_skills.py.
+- materialize-02 Implement runtime skill path builder.
+- materialize-03 Implement JSON-to-SKILL.md renderer.
+- materialize-04 Include YAML frontmatter.
+- materialize-05 Include identity/method/search/constraints/source sections.
+- materialize-06 Include guardrail footer.
+- materialize-07 Write temp SKILL.md.
+- materialize-08 Return materialization metadata/hash.
+- materialize-09 Delete temp skill directory after success.
+- materialize-10 Delete temp skill directory after failure.
+- materialize-11 Add materializer tests.
+- retrieve-01 Build POV skill retrieval context from topic + POV + lens.
+- retrieve-02 Search persisted SkillDefinition rows.
+- retrieve-03 Score by semantic-ish text overlap for now.
+- retrieve-04 Filter invalid/rejected/deprecated skills.
+- retrieve-05 Select best skill per POV.
+- retrieve-06 Increment reuse stats.
+- retrieve-07 Record CapabilityMatch.
+- retrieve-08 Add tests for relevant skill reuse.
+- retrieve-09 Add tests for different POV skills.
+- retrieve-10 Add tests for skipped unsafe/rejected skills.
+- create-01 Define runtime skill creation prompt contract.
+- create-02 Update v2_skill_create prompt or add focused prompt file.
+- create-03 Queue creation when retrieval misses.
+- create-04 Validate created skill.
+- create-05 Persist created provisional skill.
+- create-06 Immediately select created skill for current job.
+- create-07 Add tests for no-match creation.
+- create-08 Add tests that invalid generated skill is rejected.
+- prompt-01 Materialize skill before rendering v2_pov worker prompt.
+- prompt-02 Inject rendered skill content into prompt.
+- prompt-03 Inject subagent_identity.
+- prompt-04 State skill is subordinate to system/developer/user constraints.
+- prompt-05 State skill cannot grant tools or permissions.
+- prompt-06 Add official/public-source-only instruction.
+- prompt-07 Add tests for rendered prompt contents.
+- prompt-08 Add tests that job capabilities/model do not change.
+- provenance-01 Record skill created vs reused.
+- provenance-02 Record materialization path.
+- provenance-03 Record skill version/hash.
+- provenance-04 Record debate/job/POV/worker/model IDs.
+- provenance-05 Record cleanup status.
+- provenance-06 Keep provenance internal-only.
+- provenance-07 Add provenance tests.
+- hide-01 Remove/gate selected_skills from normal debate serialization.
+- hide-02 Remove/gate selected_agents if only internal capability data.
+- hide-03 Remove/gate top-level skills_used.
+- hide-04 Remove/gate agent_runs.skills_used.
+- hide-05 Remove/gate raw provenance_records.
+- hide-06 Add API tests proving skill metadata is not visible.
+- cleanup-01 Implement stale runtime skill cleanup function.
+- cleanup-02 Detect stale runtime/skills/* dirs.
+- cleanup-03 Preserve currently active job dirs.
+- cleanup-04 Run cleanup from safe startup/service path.
+- cleanup-05 Add stale cleanup tests.
+- smoke-01 Add end-to-end V2 test with existing skill reuse.
+- smoke-02 Add end-to-end V2 test with missing skill creation.
+- smoke-03 Assert four POV jobs complete.
+- smoke-04 Assert synthesis completes.
+- smoke-05 Assert temp files deleted.
+- smoke-06 Assert JSON persists.
+- smoke-07 Assert public API hides skills.
+- smoke-08 Assert internal provenance exists.
+
+Dependency links:
+- schema-* -> materialize-*
+- schema-* -> retrieve-*
+- schema-* -> create-*
+- materialize-* + retrieve-* -> prompt-*
+- retrieve-* + create-* -> provenance-*
+- prompt-* + provenance-* -> hide-*
+- materialize-* -> cleanup-*
+- schema-* + materialize-* + retrieve-* + create-* + prompt-* + provenance-* + hide-* + cleanup-* -> smoke-*
+
+Acceptance criteria:
+- Relevant existing skill is retrieved.
+- Missing skill triggers creation.
+- Created skill is schema-validated.
+- Created skill is materialized and used immediately.
+- Temporary SKILL.md is deleted after completion.
+- Temporary SKILL.md is deleted after failure.
+- JSON persists.
+- Internal provenance records created vs reused.
+- Bad skill JSON is rejected.
+- Skill does not expand tool permissions.
+- Different POV subagents receive different relevant skills.
+- Synthesis still works.
+- Public API/UI does not expose skill usage or provenance.
+
+Guardrails:
+- Skills cannot grant tools.
+- Skills cannot require arbitrary code execution.
+- Skills cannot override system/developer/user constraints.
+- Skills cannot claim fake credentials as factual authority.
+- Skills can define expert stance, but must preserve uncertainty.
+- Skills must require official/public sources only.
+- Skills must not instruct use of private data, leaked data, credential-gated DBs, or random internet databases.
+- Treat DB skill content as untrusted prompt content and subordinate it explicitly.
+
+Delivery rules:
+- Use apply_patch for edits.
+- Do not implement broad refactors.
+- Keep tests focused.
+- Run relevant pytest targets before claiming completion.
+- If tests fail, debug systematically before changing implementation.

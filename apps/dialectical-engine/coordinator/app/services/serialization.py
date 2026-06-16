@@ -256,7 +256,7 @@ def provenance_to_dict(record: ProvenanceRecord) -> dict[str, Any]:
     }
 
 
-def debate_to_dict(db: Session, debate: Debate) -> dict[str, Any]:
+def debate_to_dict(db: Session, debate: Debate, *, include_internal: bool = False) -> dict[str, Any]:
     nodes = list(db.scalars(select(Node).where(Node.debate_id == debate.id, Node.status != "stale")).all())
     streaming_jobs = list(
         db.scalars(
@@ -338,12 +338,16 @@ def debate_to_dict(db: Session, debate: Debate) -> dict[str, Any]:
         "active_synthesis": active_synthesis_summary(db, active_synthesis_job) if active_synthesis_job else None,
         "branch_lineage": [branch_to_dict(branch) for branch in branches],
         "analyzer_runs": [analyzer_run_to_dict(run) for run in analyzer_runs],
-        "selected_skills": [capability_match_to_dict(db, match) for match in matches if match.capability_kind == "skill"],
-        "selected_agents": [capability_match_to_dict(db, match) for match in matches if match.capability_kind == "agent"],
+        "selected_skills": [capability_match_to_dict(db, match) for match in matches if match.capability_kind == "skill"]
+        if include_internal
+        else [],
+        "selected_agents": [capability_match_to_dict(db, match) for match in matches if match.capability_kind == "agent"]
+        if include_internal
+        else [],
         "agent_outputs": [agent_output_to_dict(output) for output in agent_outputs],
         "agent_runs": serialized_agent_runs,
-        "skills_used": skills_used,
-        "provenance_records": [provenance_to_dict(record) for record in provenance_records],
+        "skills_used": skills_used if include_internal else [],
+        "provenance_records": [provenance_to_dict(record) for record in provenance_records] if include_internal else [],
         "workers": sorted(worker_names),
         "models": sorted(models),
         "node_count": len(nodes),

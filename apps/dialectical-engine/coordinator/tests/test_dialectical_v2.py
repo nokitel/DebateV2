@@ -218,6 +218,42 @@ def worker_plan() -> dict:
     }
 
 
+def worker_runtime_skill_output(worker: Worker, job_id: str, debate_id: str) -> dict:
+    return {
+        "kind": "runtime_skill",
+        "name": "Urban Mobility Runtime Skill",
+        "version": 1,
+        "status": "provisional",
+        "description": "Use for urban mobility policy tradeoffs, evidence quality, access, implementation, and public-source boundaries.",
+        "subagent_identity": "You are a careful urban mobility debate specialist who preserves uncertainty and provenance.",
+        "method": ["Frame evidence quality", "Track access tradeoffs", "Check implementation assumptions"],
+        "search_guidance": [
+            "Use only official documentation, public primary sources, standards, regulations, filings, or institutional documents relevant to the domain."
+        ],
+        "constraints": ["Do not run code", "Do not request tools", "Do not use private or non-public data"],
+        "source_policy": {
+            "allowed_sources": ["official_documentation", "public_primary_sources"],
+            "forbidden_sources": ["private_databases", "credential-gated_leaks", "random_web_databases"],
+        },
+        "quality": {"quality_score": None, "reuse_count": 0, "last_used_at": None},
+        "provenance": {
+            "created_by_model": "codex-gpt-5.5",
+            "created_by_worker_id": worker.id,
+            "created_in_debate_id": debate_id,
+            "created_by_job_id": job_id,
+            "creation_prompt_id": f"prompt-{job_id}",
+            "job_id": job_id,
+        },
+    }
+
+
+def complete_initial_runtime_skill_creation(db, debate: Debate, worker: Worker):
+    job = claim_for_worker(db, worker)
+    assert job.job_type == "v2_skill_create"
+    asyncio.run(complete_job(db, job, worker_runtime_skill_output(worker, job.id, debate.id), {"latency_ms": 8}))
+    return job
+
+
 def worker_agent_run_output(worker: Worker, job_id: str) -> dict:
     payload = worker_agent_output(worker, job_id)
     payload["contribution_summary"] = "This run adds a distinct lens to the final synthesis."
@@ -286,7 +322,13 @@ def worker_non_adjudicating_synthesis(worker: Worker, job_id: str) -> dict:
 
 
 def complete_worker_v2_plan_pipeline(db, debate: Debate, worker: Worker) -> None:
-    for _ in range(4):
+    first_job = claim_for_worker(db, worker)
+    if first_job.job_type == "v2_skill_create":
+        asyncio.run(complete_job(db, first_job, worker_runtime_skill_output(worker, first_job.id, debate.id), {"latency_ms": 8}))
+        first_job = claim_for_worker(db, worker)
+    assert first_job.job_type == "v2_pov"
+    asyncio.run(complete_job(db, first_job, worker_pov_output(worker, first_job.id, first_job.required_role), {"latency_ms": 12}))
+    for _ in range(3):
         job = claim_for_worker(db, worker)
         assert job.job_type == "v2_pov"
         asyncio.run(complete_job(db, job, worker_pov_output(worker, job.id, job.required_role), {"latency_ms": 12}))
@@ -306,7 +348,11 @@ def test_create_debate_queues_planner_before_agent_execution(db) -> None:
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {"max_depth": 1})
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id).order_by(entities.Job.created_at)).all()
 
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_skill_create"]
+    assert jobs[0].required_role == "v2_skill_creator"
+    assert jobs[0].required_model == "codex-gpt-5.5"
+    complete_initial_runtime_skill_creation(db, debate, db.scalar(select(Worker).where(Worker.name == "codex-worker")))
+    jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id).order_by(entities.Job.created_at)).all()
     assert [job.required_role for job in jobs if job.job_type == "v2_pov"] == [
         "Scientific POV",
         "Statistical POV",
@@ -346,6 +392,7 @@ def test_claimed_v2_planner_does_not_render_as_root_node_generation(db) -> None:
     service = v2_service()
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should mosquitoes be exterminated?", {})
+    complete_initial_runtime_skill_creation(db, debate, worker)
     job = claim_for_worker(db, worker)
 
     assert job.job_type == "v2_pov"
@@ -365,11 +412,14 @@ def test_planner_completion_persists_definitions_and_real_agent_runs_before_queu
     service = v2_service()
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
+    skill_job = complete_initial_runtime_skill_creation(db, debate, worker)
     job = claim_for_worker(db, worker)
 
     asyncio.run(complete_job(db, job, worker_pov_output(worker, job.id, job.required_role), {"latency_ms": 9}))
 
-    assert db.scalar(select(models["SkillDefinition"])) is None
+    saved_skill = db.scalar(select(models["SkillDefinition"]))
+    assert saved_skill is not None
+    assert saved_skill.definition["provenance"]["created_by_job_id"] == skill_job.id
     assert db.scalar(select(models["AgentDefinition"])) is None
     runs = db.scalars(select(models["AgentRun"]).where(models["AgentRun"].debate_id == debate.id)).all()
     assert runs == []
@@ -384,6 +434,7 @@ def test_pov_completion_materializes_title_content_and_nested_pro_con_cards(db) 
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
+    complete_initial_runtime_skill_creation(db, debate, worker)
     first_job = claim_for_worker(db, worker)
     assert first_job.job_type == "v2_pov"
     assert first_job.required_role in {"Scientific POV", "Statistical POV", "Ethical POV", "Practical POV"}
@@ -413,6 +464,7 @@ def test_synthesis_queues_only_after_all_pov_branches_complete(db) -> None:
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
+    complete_initial_runtime_skill_creation(db, debate, worker)
     first_job = claim_for_worker(db, worker)
     asyncio.run(complete_job(db, first_job, worker_pov_output(worker, first_job.id, first_job.required_role), {"latency_ms": 12}))
     assert db.scalar(select(entities.Job).where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_synthesize")) is None
@@ -432,6 +484,7 @@ def test_non_adjudicating_synthesis_completes_without_declaring_winner(db) -> No
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
+    complete_initial_runtime_skill_creation(db, debate, worker)
     for _ in range(4):
         job = claim_for_worker(db, worker)
         assert job.job_type == "v2_pov"
@@ -482,6 +535,7 @@ def test_synthesis_waits_until_all_pov_branches_complete(db) -> None:
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
+    complete_initial_runtime_skill_creation(db, debate, worker)
     first_pov_job = claim_for_worker(db, worker)
     assert first_pov_job.job_type == "v2_pov"
     asyncio.run(complete_job(db, first_pov_job, worker_pov_output(worker, first_pov_job.id, first_pov_job.required_role), {"latency_ms": 12}))
@@ -574,7 +628,10 @@ def test_empty_database_question_creates_full_pipeline_without_direct_answer(db)
     db.expire_all()
     assert db.scalar(select(models["DebateBranch"]).where(models["DebateBranch"].debate_id == debate.id)) is not None
     assert db.scalars(select(models["AnalyzerRun"]).where(models["AnalyzerRun"].debate_id == debate.id)).all() == []
-    assert db.scalar(select(models["CapabilityMatch"]).where(models["CapabilityMatch"].debate_id == debate.id)) is None
+    match = db.scalar(select(models["CapabilityMatch"]).where(models["CapabilityMatch"].debate_id == debate.id))
+    assert match is not None
+    assert match.capability_kind == "skill"
+    assert match.selection_reason == "created"
     assert db.scalar(select(models["AgentOutput"]).where(models["AgentOutput"].debate_id == debate.id)) is None
     assert db.scalar(select(models["ProvenanceRecord"]).where(models["ProvenanceRecord"].debate_id == debate.id)) is not None
 
@@ -587,7 +644,8 @@ def test_second_similar_question_does_not_reuse_local_skill_or_agent(db) -> None
     complete_worker_v2_pipeline(db, first, worker)
     created_skill = db.scalar(select(models["SkillCapability"]))
     created_agent = db.scalar(select(models["AgentCapability"]))
-    assert created_skill is None
+    assert created_skill is not None
+    assert created_skill.definition["kind"] == "runtime_skill"
     assert created_agent is None
 
     second = service.create_dialectical_debate(db, "Should a city restrict downtown car traffic?", {})
@@ -622,7 +680,11 @@ def test_low_quality_or_rejected_capabilities_are_not_selected(db) -> None:
     complete_worker_v2_pipeline(db, created, db.scalar(select(Worker).where(Worker.name == "codex-worker")))
     matches = db.scalars(select(models["CapabilityMatch"]).where(models["CapabilityMatch"].debate_id == created.id)).all()
 
-    assert matches == []
+    assert len(matches) == 1
+    assert matches[0].capability_kind == "skill"
+    assert matches[0].selection_reason == "created"
+    assert matches[0].capability_id != rejected_skill.id
+    assert matches[0].capability_id != poor_agent.id
 
 
 def test_deterministic_capabilities_are_not_reused_for_product_v2(db) -> None:
@@ -654,7 +716,7 @@ def test_deterministic_capabilities_are_not_reused_for_product_v2(db) -> None:
     created = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == created.id)).all()
 
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_skill_create"]
     assert not db.scalars(
         select(models["CapabilityMatch"]).where(
             models["CapabilityMatch"].debate_id == created.id,
@@ -744,7 +806,7 @@ def test_post_debate_runs_v2_pipeline_and_detail_api_returns_contract(db) -> Non
         "Practical POV",
     ]
     jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == payload["id"])).all()
-    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_pov", "v2_pov", "v2_pov", "v2_pov"]
+    assert [job.job_type for job in jobs if job.job_type.startswith("v2_")] == ["v2_skill_create"]
 
 
 def test_v2_rejects_mock_only_workers(db) -> None:
@@ -776,6 +838,7 @@ def test_v2_creates_worker_jobs_for_pov_branches_and_synthesis(db) -> None:
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
 
+    complete_initial_runtime_skill_creation(db, debate, worker)
     first_jobs = db.scalars(select(entities.Job).where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_pov")).all()
     assert len(first_jobs) == 4
     assert {job.required_model for job in first_jobs} == {"codex-gpt-5.5"}
@@ -794,6 +857,7 @@ def test_v2_pov_prompt_rejects_status_wrapper_and_includes_schema(db) -> None:
     service = v2_service()
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
+    complete_initial_runtime_skill_creation(db, debate, worker)
     job = claim_for_worker(db, worker)
 
     system, user = service.render_v2_job_prompt(db, job)
@@ -810,6 +874,7 @@ def test_v2_pov_prompts_include_ethical_and_practical_lens_descriptions(db) -> N
     service = v2_service()
     worker = real_codex_worker(db)
     debate = service.create_dialectical_debate(db, "Should cities ban cars downtown?", {})
+    complete_initial_runtime_skill_creation(db, debate, worker)
     jobs = db.scalars(
         select(entities.Job)
         .where(entities.Job.debate_id == debate.id, entities.Job.job_type == "v2_pov")
@@ -836,7 +901,8 @@ def test_v2_persists_pov_tree_and_synthesis_from_worker_completed_json(db) -> No
     output = db.scalar(select(models["AgentOutput"]).where(models["AgentOutput"].debate_id == debate.id))
     provenance_records = db.scalars(select(models["ProvenanceRecord"]).where(models["ProvenanceRecord"].debate_id == debate.id)).all()
 
-    assert skill is None
+    assert skill is not None
+    assert skill.definition["kind"] == "runtime_skill"
     assert agent is None
     assert output is None
     detail = debate_to_dict(db, db.get(Debate, debate.id))
