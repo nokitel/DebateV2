@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import socket
 import sys
 from pathlib import Path
 
@@ -32,6 +33,17 @@ def test_worker_config_defaults_do_not_enable_mock(tmp_path: Path, monkeypatch) 
 
     assert config.enable_mock is False
     assert config.enable_real_adapters is True
+
+
+def test_worker_config_uses_socket_hostname_without_uname(tmp_path: Path, monkeypatch) -> None:
+    config_path = tmp_path / "worker.toml"
+    monkeypatch.setenv("DIALECTICAL_WORKER_CONFIG", str(config_path))
+    monkeypatch.setattr(socket, "gethostname", lambda: "windows-dev")
+    monkeypatch.delattr("os.uname", raising=False)
+
+    config = load_config()
+
+    assert config.name == "windows-dev"
 
 
 def test_worker_config_env_can_enable_mock(tmp_path: Path, monkeypatch) -> None:

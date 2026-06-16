@@ -986,13 +986,18 @@ nav {
 
 .synthesisPanel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 12px;
   margin-top: 20px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .synthesisPanel section {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: var(--panel-soft);
   padding: 16px;
 }
@@ -1000,13 +1005,64 @@ nav {
 .synthesisPanel h2 {
   margin: 0 0 8px;
   font-size: 14px;
+  line-height: 1.2;
   color: var(--muted);
+}
+
+.synthesisPanel p {
+  margin: 0;
+  color: #2c2925;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.synthesisVerdict {
+  grid-row: span 2;
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: linear-gradient(180deg, #ffffff 0%, var(--accent-bg) 160%);
+  box-shadow: inset 4px 0 0 var(--accent), 0 10px 26px rgba(31, 111, 139, 0.1);
+}
+
+.synthesisVerdict h2 {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.synthesisVerdict p {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.62;
+}
+
+.synthesisSupport {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  background: rgba(251, 250, 247, 0.72);
+  box-shadow: inset 3px 0 0 var(--line);
+}
+
+.synthesisSupport p {
+  color: #423d37;
+  font-size: 14px;
+}
+
+.synthesisSupportPro {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--pro) 54%, var(--line));
+}
+
+.synthesisSupportCon {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--con) 54%, var(--line));
 }
 
 .synthesisMeta {
   margin-top: 10px;
   color: var(--muted);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .workersTable {
@@ -1113,6 +1169,15 @@ nav {
   .singleShotPanel,
   .synthesisPanel {
     grid-template-columns: 1fr;
+  }
+
+  .synthesisVerdict {
+    grid-row: auto;
+  }
+
+  .synthesisVerdict p {
+    font-size: 16px;
+    line-height: 1.58;
   }
 
   .spendValue {

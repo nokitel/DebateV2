@@ -189,7 +189,9 @@ def test_enrich_v2_result_stamps_planner_first_provenance_generically(job_type: 
     }
 
 
-def test_cli_adapter_commands() -> None:
+def test_cli_adapter_commands(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODEX_COMMAND", "codex")
+
     assert ClaudeCliAdapter().command("sys", "user", 10) == [
         "claude",
         "-p",
@@ -265,6 +267,16 @@ def test_codex_command_can_include_wrapper_arguments(monkeypatch: pytest.MonkeyP
     codex_command = CodexCliAdapter().command("sys", "user", 10)
 
     assert codex_command[:4] == ["python", "-m", "codexshim", "exec"]
+
+
+def test_codex_command_defaults_to_cmd_shim_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CODEX_COMMAND", raising=False)
+    monkeypatch.setattr(codex_cli_module.os, "name", "nt")
+    monkeypatch.setattr(codex_cli_module.shutil, "which", lambda executable: "C:\\tools\\codex.cmd" if executable == "codex.cmd" else None)
+
+    codex_command = CodexCliAdapter().command("sys", "user", 10)
+
+    assert codex_command[:2] == ["C:\\tools\\codex.cmd", "exec"]
 
 
 @pytest.mark.asyncio
@@ -839,6 +851,8 @@ async def test_detect_adapters_registers_allowed_lmstudio_model(monkeypatch: pyt
 
 @pytest.mark.asyncio
 async def test_detect_adapters_respects_allowed_models(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODEX_COMMAND", "codex")
+
     async def no_ollama_models() -> list[str]:
         return []
 

@@ -578,15 +578,7 @@ export default function DebatePageClient({
         </section>
       ) : null}
       <div className="synthesisPanel">
-        <section>
-          <h2>Strongest Pro</h2>
-          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestPro}</p>
-        </section>
-        <section>
-          <h2>Strongest Con</h2>
-          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestCon}</p>
-        </section>
-        <section>
+        <section className="synthesisVerdict">
           <h2>Verdict</h2>
           <p className={synthesisStreaming ? "cursor" : undefined}>{verdict}</p>
           {synthesisDraft?.model_id ? (
@@ -595,6 +587,14 @@ export default function DebatePageClient({
               {synthesisDraft.worker_id ? ` - ${synthesisDraft.worker_id}` : ""}
             </div>
           ) : null}
+        </section>
+        <section className="synthesisSupport synthesisSupportPro">
+          <h2>Strongest Pro</h2>
+          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestPro}</p>
+        </section>
+        <section className="synthesisSupport synthesisSupportCon">
+          <h2>Strongest Con</h2>
+          <p className={synthesisStreaming ? "cursor" : undefined}>{strongestCon}</p>
         </section>
       </div>
     </main>

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import shlex
+import shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -28,6 +29,12 @@ def split_command(command: str) -> list[str]:
     return parts or ["codex"]
 
 
+def default_codex_command() -> str:
+    if os.name == "nt":
+        return shutil.which("codex.cmd") or "codex"
+    return "codex"
+
+
 class CodexCliAdapter(SubprocessStreamingAdapter):
     model_id = "codex-gpt-5.5"
     cli_model = "gpt-5.5"
@@ -35,7 +42,7 @@ class CodexCliAdapter(SubprocessStreamingAdapter):
     executable = "codex"
 
     def __init__(self, command: str | None = None) -> None:
-        self.command_prefix = split_command(command or os.getenv("CODEX_COMMAND", "codex"))
+        self.command_prefix = split_command(command or os.getenv("CODEX_COMMAND", default_codex_command()))
         self.executable = self.command_prefix[0]
         self._last_message_path: Path | None = None
 
