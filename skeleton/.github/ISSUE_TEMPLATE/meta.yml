@@ -1,0 +1,7 @@
+name: Harness meta
+description: Change request for AI Harness itself
+body:
+  - type: textarea
+    id: brief
+    attributes:
+      label: Brief

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "pros": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "type": "string" }
+    },
+    "cons": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" },
+    "confidence": { "type": "number" }
+  },
+  "required": ["pros", "cons", "summary", "confidence"]
+}

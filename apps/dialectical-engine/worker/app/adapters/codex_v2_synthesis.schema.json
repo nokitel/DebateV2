@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string" },
+    "content": { "type": "string" },
+    "tensions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "agreements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence_gaps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "key_takeaways": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["title", "content", "tensions", "agreements", "evidence_gaps", "key_takeaways"]
+}

@@ -1,0 +1,25 @@
+name: on-subissue-self-verified
+on:
+  workflow_dispatch:
+  issues:
+    types: [edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch harness hook
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+        run: |
+          echo "Invoke acceptance verifier after implementer self-verification."
+          bash scripts/runner/dispatch.sh on-subissue-self-verified
