@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+cd "$root"
+cmd=${1:-help}; shift || true
+case "$cmd" in
+  next)
+    echo "Manual fallback: move the next ready issue/sub-issue Status in GitHub Projects. Workflow automation will pick it up."
+    ;;
+  status)
+    echo "AI Harness status for $(basename "$root")"
+    if [[ -d .harness/metrics ]]; then
+      find .harness/metrics -name '*.jsonl' -type f -maxdepth 1 -print | while read -r f; do
+        echo "- $(basename "$f"): $(wc -l < "$f" | tr -d ' ') events"
+      done
+    fi
+    ;;
+  stack)
+    sub=${1:-list}; shift || true
+    exec "scripts/stack/${sub}.sh" "$@"
+    ;;
+  memory)
+    sub=${1:-help}; shift || true
+    case "$sub" in
+      query) tag=${1:-}; [[ -n "$tag" ]] || { echo "Usage: harness memory query <tag>" >&2; exit 1; }; grep -R "tags:.*$tag" -n memory || true ;;
+      reindex) exec scripts/lib/memory-index.sh ;;
+      *) echo "Usage: harness memory {query <tag>|reindex}" ;;
+    esac
+    ;;
+  reindex) exec scripts/lib/memory-index.sh ;;
+  lint)
+    bash tests/lint-templates.sh 2>/dev/null || true
+    if [[ -x scripts/lib/tags-validate.sh ]]; then scripts/lib/tags-validate.sh; fi
+    ;;
+  upgrade) exec bootstrap/upgrade.sh "$@" ;;
+  verify-config)
+    [[ -f .harness/config.yml ]] || { echo ".harness/config.yml missing" >&2; exit 1; }
+    awk '/^verification:/{flag=1} /^scheduling:/{flag=0} flag' .harness/config.yml
+    ;;
+  help|--help|-h|*) echo "Usage: harness {next|status|stack|memory|reindex|lint|upgrade|verify-config}" ;;
+esac

@@ -1,15 +1,27 @@
 .DS_Store
 .pnpm-store/
+memory/index.json
+.harness/metrics/*.jsonl
+.worktrees/
 
 **/__pycache__/
 **/*.py[cod]
 **/.pytest_cache/
 **/.coverage
 
-dialectical-engine/.venv/
+apps/dialectical-engine/.venv/
+apps/dialectical-engine/.venv*/
+apps/dialectical-engine/.dialectical-dev/
+apps/dialectical-engine/web/.next/
+apps/dialectical-engine/web/.next-dev*/
+apps/dialectical-engine/web/node_modules/
+apps/dialectical-engine/web/out/
+
+# Legacy local runtime artifacts left behind after the app moved under apps/.
 dialectical-engine/.venv*/
 dialectical-engine/.dialectical-dev/
+dialectical-engine/**/__pycache__/
+dialectical-engine/**/.pytest_cache/
 dialectical-engine/web/.next/
 dialectical-engine/web/.next-dev*/
 dialectical-engine/web/node_modules/
-dialectical-engine/web/out/

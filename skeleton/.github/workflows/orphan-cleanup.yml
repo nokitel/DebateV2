@@ -1,0 +1,25 @@
+name: orphan-cleanup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '43 3 * * *'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch harness hook
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+        run: |
+          echo "Tear down stale stacks and exited harness containers."
+          bash scripts/runner/dispatch.sh orphan-cleanup

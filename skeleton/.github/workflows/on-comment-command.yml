@@ -1,0 +1,25 @@
+name: on-comment-command
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch harness hook
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+        run: |
+          echo "Route /zoom-out, /design-an-interface, /grill-me, /write-a-skill, /lessons-deep."
+          bash scripts/runner/dispatch.sh on-comment-command

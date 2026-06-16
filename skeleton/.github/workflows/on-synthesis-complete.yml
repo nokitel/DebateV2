@@ -1,0 +1,25 @@
+name: on-synthesis-complete
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened, edited, labeled, unlabeled, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch harness hook
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+        run: |
+          echo "Clarification gate after synthesis updates issue body."
+          bash scripts/runner/dispatch.sh on-synthesis-complete
